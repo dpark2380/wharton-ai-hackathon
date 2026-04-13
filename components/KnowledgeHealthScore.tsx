@@ -94,6 +94,7 @@ export default function KnowledgeHealthScore({
         <div
           className={`absolute inset-0 flex items-center justify-center ${fontSize}`}
           style={{ color }}
+          translate="no"
           suppressHydrationWarning
         >
           {displayScore}

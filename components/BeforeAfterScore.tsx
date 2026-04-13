@@ -58,11 +58,16 @@ function AnimatedScore({ target, color }: { target: number; color: string }) {
         <div
           className="absolute inset-0 flex items-center justify-center text-3xl font-bold"
           style={{ color }}
+          translate="no"
         >
           {current}
         </div>
       </div>
-      <span className="text-xs font-semibold uppercase tracking-wide" style={{ color }}>
+      <span
+        className="text-xs font-semibold uppercase tracking-wide"
+        style={{ color }}
+        translate="no"
+      >
         {getKnowledgeHealthLabel(current)}
       </span>
     </div>
