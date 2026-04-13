@@ -1,8 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, MessageCircle } from "lucide-react";
-import VoiceInput from "./VoiceInput";
+import dynamic from "next/dynamic";
+import { CheckCircle2, MessageCircle, Mic } from "lucide-react";
+
+const VoiceInput = dynamic(() => import("./VoiceInput"), {
+  ssr: false,
+  loading: () => (
+    <button disabled className="p-3 rounded-full bg-gray-100 text-gray-300 cursor-not-allowed">
+      <Mic className="w-4 h-4" />
+    </button>
+  ),
+});
 
 export interface FollowUpQuestion {
   question: string;

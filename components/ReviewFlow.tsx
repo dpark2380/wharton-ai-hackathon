@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Star, ArrowRight, Loader2 } from "lucide-react";
-import VoiceInput from "./VoiceInput";
+import dynamic from "next/dynamic";
+import { Star, ArrowRight, Loader2, Mic } from "lucide-react";
 import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
 import BeforeAfterScore from "./BeforeAfterScore";
 import KnowledgeHealthScore from "./KnowledgeHealthScore";
+
+// SSR: false prevents hydration mismatch from SpeechRecognition feature detection
+const VoiceInput = dynamic(() => import("./VoiceInput"), {
+  ssr: false,
+  loading: () => (
+    <button disabled className="p-3 rounded-full bg-gray-100 text-gray-300 cursor-not-allowed">
+      <Mic className="w-4 h-4" />
+    </button>
+  ),
+});
 
 interface ReviewFlowProps {
   propertyId: string;

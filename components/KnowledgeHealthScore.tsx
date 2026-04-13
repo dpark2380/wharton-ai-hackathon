@@ -11,7 +11,7 @@ interface KnowledgeHealthScoreProps {
 }
 
 const SIZES = {
-  sm: { dim: 64, stroke: 5, r: 26, fontSize: "text-lg font-bold" },
+  sm: { dim: 64, stroke: 5, r: 26, fontSize: "text-base font-bold" },
   md: { dim: 96, stroke: 7, r: 38, fontSize: "text-2xl font-bold" },
   lg: { dim: 140, stroke: 9, r: 58, fontSize: "text-4xl font-bold" },
 };
@@ -27,27 +27,31 @@ export default function KnowledgeHealthScore({
   const color = getKnowledgeHealthColor(score);
   const label = getKnowledgeHealthLabel(score);
 
-  const [displayScore, setDisplayScore] = useState(animated ? 0 : score);
-  const [dashOffset, setDashOffset] = useState(circumference);
+  // Always start at actual score for SSR — no mismatch
+  const [displayScore, setDisplayScore] = useState(score);
+  const [dashOffset, setDashOffset] = useState(
+    circumference - (score / 100) * circumference
+  );
   const animRef = useRef<number | null>(null);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (!animated) {
-      setDisplayScore(score);
-      setDashOffset(circumference - (score / 100) * circumference);
-      return;
+    if (!animated) return;
+    // Only animate after mount (never on SSR)
+    if (!mounted.current) {
+      mounted.current = true;
+      // Reset to 0 then animate up
+      setDisplayScore(0);
+      setDashOffset(circumference);
     }
 
-    // Animate over 1.2 seconds
     const duration = 1200;
     const start = performance.now();
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(eased * score);
-      setDisplayScore(current);
+      setDisplayScore(Math.round(eased * score));
       setDashOffset(circumference - (eased * score / 100) * circumference);
       if (progress < 1) {
         animRef.current = requestAnimationFrame(animate);
@@ -57,7 +61,8 @@ export default function KnowledgeHealthScore({
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [score, animated, circumference]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score]);
 
   const cx = dim / 2;
   const cy = dim / 2;
@@ -67,14 +72,7 @@ export default function KnowledgeHealthScore({
       <div style={{ width: dim, height: dim }} className="relative">
         <svg width={dim} height={dim} viewBox={`0 0 ${dim} ${dim}`}>
           {/* Track */}
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke="#e5e0d8"
-            strokeWidth={stroke}
-          />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e0d8" strokeWidth={stroke} />
           {/* Progress */}
           <circle
             cx={cx}
@@ -89,15 +87,14 @@ export default function KnowledgeHealthScore({
             style={{
               transform: "rotate(-90deg)",
               transformOrigin: "center",
-              transition: animated ? undefined : "none",
               filter: `drop-shadow(0 0 6px ${color}55)`,
             }}
           />
         </svg>
-        {/* Score number centered */}
         <div
           className={`absolute inset-0 flex items-center justify-center ${fontSize}`}
           style={{ color }}
+          suppressHydrationWarning
         >
           {displayScore}
         </div>

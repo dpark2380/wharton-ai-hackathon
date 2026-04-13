@@ -216,14 +216,14 @@ export default function PropertyCard({
         </div>
       )}
 
-      {/* CTA */}
-      <div className="mt-4">
-        <button
-          className="w-full text-sm font-semibold py-2 rounded-xl text-white transition-all duration-200 hover:opacity-90 active:scale-95"
+      {/* CTA — pointer-events:none so the outer div click fires cleanly */}
+      <div className="mt-4 pointer-events-none">
+        <div
+          className="w-full text-sm font-semibold py-2 rounded-xl text-white text-center transition-all duration-200"
           style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
         >
-          View & Review →
-        </button>
+          View &amp; Review →
+        </div>
       </div>
     </div>
   );

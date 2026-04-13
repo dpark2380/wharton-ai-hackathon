@@ -49,7 +49,8 @@ function isPropertyAmenityRelevant(property: Property, topic: Topic): boolean {
   return topic.amenityKeys.some((key) => allAmenityText.includes(key.replace(/_/g, " ")) || allAmenityText.includes(key));
 }
 
-function detectSentiment(reviews: Review[], topicId: string): {
+// Now takes pre-filtered mentioning reviews — no re-classification needed
+function detectSentiment(mentioningReviews: Review[]): {
   sentiment: "positive" | "negative" | "mixed" | "unknown";
   confidence: number;
 } {
@@ -63,12 +64,8 @@ function detectSentiment(reviews: Review[], topicId: string): {
   let posCount = 0;
   let negCount = 0;
 
-  for (const review of reviews) {
+  for (const review of mentioningReviews) {
     const text = (review.review_text || "").toLowerCase();
-    if (!text) continue;
-    const covered = classifyText(text);
-    if (!covered.has(topicId)) continue;
-
     for (const w of posWords) if (text.includes(w)) posCount++;
     for (const w of negWords) if (text.includes(w)) negCount++;
   }
@@ -82,18 +79,18 @@ function detectSentiment(reviews: Review[], topicId: string): {
   return { sentiment: "mixed", confidence };
 }
 
-function detectSentimentShift(reviews: Review[], topicId: string): boolean {
+function detectSentimentShift(reviews: Review[], topicSets: Set<string>[], topicId: string): boolean {
   const cutoff = new Date(NOW);
   cutoff.setMonth(cutoff.getMonth() - 3);
 
-  const recent = reviews.filter((r) => {
-    const d = parseReviewDate(r.acquisition_date);
-    return d >= cutoff && classifyText(r.review_text || "").has(topicId);
-  });
-  const older = reviews.filter((r) => {
-    const d = parseReviewDate(r.acquisition_date);
-    return d < cutoff && classifyText(r.review_text || "").has(topicId);
-  });
+  const recent: Review[] = [];
+  const older: Review[] = [];
+  for (let i = 0; i < reviews.length; i++) {
+    if (!topicSets[i].has(topicId)) continue;
+    const d = parseReviewDate(reviews[i].acquisition_date);
+    if (d >= cutoff) recent.push(reviews[i]);
+    else older.push(reviews[i]);
+  }
 
   if (recent.length < 2 || older.length < 5) return false;
 
@@ -104,14 +101,23 @@ function detectSentimentShift(reviews: Review[], topicId: string): boolean {
   return Math.abs(recentNegRatio - olderNegRatio) > 0.3;
 }
 
+// Module-level cache — populated once per cold start
+const _analysisCache = new Map<string, PropertyAnalysis>();
+
 export function analyzeProperty(property: Property, reviews: Review[]): PropertyAnalysis {
+  const cached = _analysisCache.get(property.eg_property_id);
+  if (cached) return cached;
+
   const reviewsWithText = reviews.filter((r) => r.review_text && r.review_text.trim().length > 0);
+
+  // Pre-classify every review once (not once per topic)
+  const reviewTopicSets = reviewsWithText.map((r) => classifyText(r.review_text));
 
   const topics: TopicAnalysis[] = TOPICS.map((topic) => {
     const isRelevant = isPropertyAmenityRelevant(property, topic);
 
-    const mentioningReviews = reviewsWithText.filter((r) =>
-      classifyText(r.review_text).has(topic.id)
+    const mentioningReviews = reviewsWithText.filter((_, i) =>
+      reviewTopicSets[i].has(topic.id)
     );
 
     const reviewCount = mentioningReviews.length;
@@ -129,9 +135,9 @@ export function analyzeProperty(property: Property, reviews: Review[]): Property
       lastMentionDate = latest.toISOString().split("T")[0];
     }
 
-    const { sentiment, confidence: sentimentConfidence } = detectSentiment(reviewsWithText, topic.id);
+    const { sentiment, confidence: sentimentConfidence } = detectSentiment(mentioningReviews);
     const hasSentimentConsensus = sentiment !== "mixed" && sentiment !== "unknown";
-    const hasSentimentShift = detectSentimentShift(reviewsWithText, topic.id);
+    const hasSentimentShift = detectSentimentShift(reviewsWithText, reviewTopicSets, topic.id);
 
     const topicScore = isRelevant
       ? coverageScore * 0.4 + freshnessScore * 0.4 + (hasSentimentConsensus ? 0.2 : 0)
@@ -178,7 +184,7 @@ export function analyzeProperty(property: Property, reviews: Review[]): Property
     })
     .slice(0, 5);
 
-  return {
+  const result: PropertyAnalysis = {
     propertyId: property.eg_property_id,
     knowledgeHealthScore,
     topics,
@@ -186,6 +192,9 @@ export function analyzeProperty(property: Property, reviews: Review[]): Property
     reviewsWithText: reviewsWithText.length,
     topGaps,
   };
+
+  _analysisCache.set(property.eg_property_id, result);
+  return result;
 }
 
 export function getKnowledgeHealthColor(score: number): string {
