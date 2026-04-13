@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Star, ArrowRight, Loader2, Mic } from "lucide-react";
+import { Star, ArrowRight, Loader2, Mic, AlertCircle } from "lucide-react";
 import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
 import BeforeAfterScore from "./BeforeAfterScore";
 import KnowledgeHealthScore from "./KnowledgeHealthScore";
+import { checkTextQuality } from "@/lib/quality";
 
 // SSR: false prevents hydration mismatch from SpeechRecognition feature detection
 const VoiceInput = dynamic(() => import("./VoiceInput"), {
@@ -27,6 +28,13 @@ interface ReviewFlowProps {
 
 type Step = "write" | "questions" | "thankyou";
 
+interface AnswerPayload {
+  topicId: string;
+  topicLabel: string;
+  answer: string;
+  type: FollowUpQuestion["type"];
+}
+
 export default function ReviewFlow({
   propertyId,
   propertyName,
@@ -39,54 +47,82 @@ export default function ReviewFlow({
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [qualityError, setQualityError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<FollowUpQuestion[]>([]);
-  const [answeredTopics, setAnsweredTopics] = useState<string[]>([]);
-  const [answeredTopicLabels, setAnsweredTopicLabels] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<AnswerPayload[]>([]);
   const [scoreResult, setScoreResult] = useState<{
     previousScore: number;
     newScore: number;
     improvement: number;
+    improvedTopics: string[];
   } | null>(null);
 
   const stepNumbers: Record<Step, number> = { write: 1, questions: 2, thankyou: 3 };
   const currentStep = stepNumbers[step];
 
+  const answeredTopicIds = answers.map((a) => a.topicId);
+
   const handleSubmitReview = async () => {
     if (!reviewText.trim() || overallRating === 0) return;
-    setIsAnalyzing(true);
 
+    // ── Client-side quality check (instant feedback, no round-trip) ──────────
+    const quality = checkTextQuality(reviewText);
+    if (!quality.isValid) {
+      setQualityError(quality.feedback);
+      return;
+    }
+    setQualityError(null);
+    // ─────────────────────────────────────────────────────────────────────────
+
+    setIsAnalyzing(true);
     try {
-      // Analyze what topics the review covers
       const analyzeRes = await fetch("/api/analyze-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewText }),
       });
       const { coveredTopics } = await analyzeRes.json();
-      const coveredIds = coveredTopics.map((t: { id: string }) => t.id);
+      const coveredIds = (coveredTopics ?? []).map((t: { id: string }) => t.id);
 
-      // Generate follow-up questions
       const genRes = await fetch("/api/generate-questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ propertyId, coveredTopics: coveredIds, reviewText }),
       });
+
+      if (!genRes.ok) {
+        // Server-side quality rejection
+        const err = await genRes.json();
+        if (err.error === "low_quality") {
+          setQualityError(err.feedback || "Please write a more detailed review.");
+          setIsAnalyzing(false);
+          return;
+        }
+        throw new Error(err.error);
+      }
+
       const { questions: generatedQs } = await genRes.json();
       setQuestions(generatedQs || []);
       setStep("questions");
     } catch (err) {
       console.error(err);
-      setStep("questions");
+      setQualityError("Something went wrong. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleAnswer = (topicId: string, answer: string, topicLabel?: string) => {
-    if (!answeredTopics.includes(topicId)) {
-      setAnsweredTopics((prev) => [...prev, topicId]);
-      if (topicLabel) setAnsweredTopicLabels((prev) => [...prev, topicLabel]);
-    }
+  const handleAnswer = (
+    topicId: string,
+    answer: string,
+    type: FollowUpQuestion["type"]
+  ) => {
+    if (answeredTopicIds.includes(topicId)) return;
+    const q = questions.find((q) => q.topicId === topicId);
+    setAnswers((prev) => [
+      ...prev,
+      { topicId, topicLabel: q?.topic ?? topicId, answer, type },
+    ]);
   };
 
   const handleFinish = async () => {
@@ -94,15 +130,31 @@ export default function ReviewFlow({
       const res = await fetch("/api/process-answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyId, answeredTopics }),
+        body: JSON.stringify({
+          propertyId,
+          answers: answers.map(({ topicId, answer, type }) => ({
+            topicId,
+            answer,
+            type,
+          })),
+        }),
       });
       const data = await res.json();
-      setScoreResult(data);
+      setScoreResult({
+        previousScore: data.previousScore,
+        newScore: data.newScore,
+        improvement: data.improvement,
+        improvedTopics: answers
+          .filter((a) => data.improvedTopics.includes(a.topicId))
+          .map((a) => a.topicLabel),
+      });
     } catch {
+      // Graceful fallback — still show the result
       setScoreResult({
         previousScore: currentHealthScore,
-        newScore: Math.min(100, currentHealthScore + answeredTopics.length * 5),
-        improvement: answeredTopics.length * 5,
+        newScore: Math.min(100, currentHealthScore + answers.length * 4),
+        improvement: answers.length * 4,
+        improvedTopics: answers.map((a) => a.topicLabel),
       });
     }
     setStep("thankyou");
@@ -156,10 +208,14 @@ export default function ReviewFlow({
             hoverRating={hoverRating}
             reviewText={reviewText}
             isAnalyzing={isAnalyzing}
+            qualityError={qualityError}
             onRatingChange={setOverallRating}
             onHoverChange={setHoverRating}
-            onTextChange={setReviewText}
-            onVoiceTranscript={(t) => setReviewText((prev) => prev ? prev + " " + t : t)}
+            onTextChange={(t) => { setReviewText(t); setQualityError(null); }}
+            onVoiceTranscript={(t) => {
+              setReviewText((prev) => (prev ? prev + " " + t : t));
+              setQualityError(null);
+            }}
             onSubmit={handleSubmitReview}
           />
         )}
@@ -167,11 +223,8 @@ export default function ReviewFlow({
         {step === "questions" && (
           <QuestionsStep
             questions={questions}
-            answeredTopics={answeredTopics}
-            onAnswer={(topicId, answer) => {
-              const q = questions.find((q) => q.topicId === topicId);
-              handleAnswer(topicId, answer, q?.topic);
-            }}
+            answeredTopicIds={answeredTopicIds}
+            onAnswer={handleAnswer}
             onFinish={handleFinish}
           />
         )}
@@ -181,7 +234,7 @@ export default function ReviewFlow({
             previousScore={scoreResult.previousScore}
             newScore={scoreResult.newScore}
             improvement={scoreResult.improvement}
-            improvedTopics={answeredTopicLabels}
+            improvedTopics={scoreResult.improvedTopics}
           />
         )}
       </div>
@@ -195,6 +248,7 @@ function WriteStep({
   hoverRating,
   reviewText,
   isAnalyzing,
+  qualityError,
   onRatingChange,
   onHoverChange,
   onTextChange,
@@ -205,19 +259,30 @@ function WriteStep({
   hoverRating: number;
   reviewText: string;
   isAnalyzing: boolean;
+  qualityError: string | null;
   onRatingChange: (n: number) => void;
   onHoverChange: (n: number) => void;
   onTextChange: (s: string) => void;
   onVoiceTranscript: (s: string) => void;
   onSubmit: () => void;
 }) {
-  const canSubmit = overallRating > 0 && reviewText.trim().length > 0;
+  const canSubmit = overallRating > 0 && reviewText.trim().length > 0 && !isAnalyzing;
+  const quality = reviewText.trim().length > 0 ? checkTextQuality(reviewText) : null;
+
+  // Visual quality indicator
+  const qualityBarWidth = quality ? Math.round(quality.score * 100) : 0;
+  const qualityBarColor =
+    quality && quality.score >= 0.7 ? "#22c55e"
+    : quality && quality.score >= 0.4 ? "#f59e0b"
+    : "#ef4444";
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
         <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">Share Your Experience</h2>
-        <p className="text-sm text-gray-500">Tell us about your stay — we'll ask the right follow-up questions.</p>
+        <p className="text-sm text-gray-500">
+          Tell us about your stay — we'll ask the right follow-up questions.
+        </p>
       </div>
 
       {/* Star rating */}
@@ -260,14 +325,43 @@ function WriteStep({
           onChange={(e) => onTextChange(e.target.value)}
           placeholder="Tell us about the room, service, location... anything that stood out."
           rows={5}
-          className="w-full text-sm rounded-xl border border-[#e5e0d8] bg-[#faf8f5] px-4 py-3 resize-none focus:outline-none focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b3520] transition-all"
+          className={`w-full text-sm rounded-xl border bg-[#faf8f5] px-4 py-3 resize-none focus:outline-none focus:ring-2 transition-all ${
+            qualityError
+              ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+              : "border-[#e5e0d8] focus:border-[#ff6b35] focus:ring-[#ff6b3520]"
+          }`}
         />
-        <p className="text-xs text-gray-400 mt-1">{reviewText.length} characters</p>
+
+        {/* Quality bar — live as they type */}
+        {reviewText.trim().length > 0 && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">Review quality</span>
+              <span className="text-xs font-medium" style={{ color: qualityBarColor }}>
+                {quality?.isValid ? (qualityBarWidth >= 70 ? "Great" : "OK") : "Needs work"}
+              </span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${qualityBarWidth}%`, background: qualityBarColor }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error message */}
+        {qualityError && (
+          <div className="mt-2 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 animate-fade-in">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{qualityError}</p>
+          </div>
+        )}
       </div>
 
       <button
         onClick={onSubmit}
-        disabled={!canSubmit || isAnalyzing}
+        disabled={!canSubmit}
         className="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
       >
@@ -290,17 +384,15 @@ function WriteStep({
 // ─── Questions Step ─────────────────────────────────────────────────────────
 function QuestionsStep({
   questions,
-  answeredTopics,
+  answeredTopicIds,
   onAnswer,
   onFinish,
 }: {
   questions: FollowUpQuestion[];
-  answeredTopics: string[];
-  onAnswer: (topicId: string, answer: string) => void;
+  answeredTopicIds: string[];
+  onAnswer: (topicId: string, answer: string, type: FollowUpQuestion["type"]) => void;
   onFinish: () => void;
 }) {
-  const allAnswered = questions.length > 0 && questions.every((q) => answeredTopics.includes(q.topicId));
-
   return (
     <div className="space-y-4 animate-fade-in">
       <div>
@@ -312,7 +404,9 @@ function QuestionsStep({
 
       {questions.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500 text-sm">Great coverage! Your review already covers the key topics.</p>
+          <p className="text-gray-500 text-sm">
+            Great coverage! Your review already covers the key topics.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -25,7 +25,7 @@ export interface FollowUpQuestion {
 interface FollowUpQuestionCardProps {
   question: FollowUpQuestion;
   index: number;
-  onAnswer: (topicId: string, answer: string) => void;
+  onAnswer: (topicId: string, answer: string, type: FollowUpQuestion["type"]) => void;
 }
 
 export default function FollowUpQuestionCard({
@@ -40,7 +40,7 @@ export default function FollowUpQuestionCard({
   const handleSubmit = (ans: string) => {
     if (!ans.trim()) return;
     setSubmitted(true);
-    onAnswer(question.topicId, ans);
+    onAnswer(question.topicId, ans, question.type);
   };
 
   const priorityColor = question.priority === "high" ? "#ef4444" : "#f59e0b";

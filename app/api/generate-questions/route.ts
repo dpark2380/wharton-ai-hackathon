@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadProperties, getReviewsForProperty } from "@/lib/data";
 import { analyzeProperty } from "@/lib/analysis";
 import { generateFollowUpQuestions } from "@/lib/openai";
+import { checkTextQuality } from "@/lib/quality";
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,16 @@ export async function POST(request: Request) {
     if (!propertyId) {
       return NextResponse.json({ error: "Missing propertyId" }, { status: 400 });
     }
+
+    // ── Server-side review quality gate ──────────────────────────────────────
+    const quality = checkTextQuality(reviewText || "");
+    if (!quality.isValid) {
+      return NextResponse.json(
+        { error: "low_quality", feedback: quality.feedback },
+        { status: 422 }
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const properties = loadProperties();
     const property = properties.find((p) => p.eg_property_id === propertyId);
@@ -21,7 +32,6 @@ export async function POST(request: Request) {
     const reviews = getReviewsForProperty(propertyId);
     const analysis = analyzeProperty(property, reviews);
 
-    // Get gaps that the reviewer didn't already cover
     const gaps = analysis.topics
       .filter(
         (t) =>
@@ -38,7 +48,7 @@ export async function POST(request: Request) {
       property,
       gaps,
       coveredTopics,
-      reviewText || ""
+      reviewText
     );
 
     return NextResponse.json({
