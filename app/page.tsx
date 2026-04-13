@@ -1,8 +1,9 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { loadProperties, loadReviews } from "@/lib/data";
 import { analyzeProperty } from "@/lib/analysis";
 import PropertyCard from "@/components/PropertyCard";
-import { BarChart3, Sparkles, TrendingUp } from "lucide-react";
+import { BarChart3, Sparkles, TrendingUp, PenLine } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -121,9 +122,19 @@ export default function HomePage() {
               <span className="text-gray-500 text-xs block">Expedia Review Intelligence</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-            Powered by GPT-4o mini
+          <div className="flex items-center gap-3">
+            <Link
+              href="/review"
+              className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl text-white transition-all hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
+            >
+              <PenLine className="w-3.5 h-3.5" />
+              Traveler Review
+            </Link>
+            <span className="text-xs text-gray-500 hidden sm:flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+              GPT-4o mini
+            </span>
           </div>
         </div>
       </header>
