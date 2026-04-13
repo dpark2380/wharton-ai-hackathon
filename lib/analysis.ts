@@ -1,0 +1,225 @@
+import { Property, Review, parseReviewDate } from "./data";
+import { TOPICS, Topic, classifyText } from "./topics";
+
+export interface TopicAnalysis {
+  topicId: string;
+  topicLabel: string;
+  isRelevant: boolean;
+  reviewCount: number;      // how many reviews mention this topic
+  coverageScore: number;    // 0-1
+  freshnessDays: number | null; // days since most recent mention (null = never mentioned)
+  freshnessScore: number;   // 0-1
+  sentiment: "positive" | "negative" | "mixed" | "unknown";
+  sentimentConfidence: number; // 0-1
+  topicScore: number;       // 0-1, weighted composite
+  isStale: boolean;
+  hasSentimentShift: boolean;
+  lastMentionDate: string | null;
+  gap: "high" | "medium" | "low" | "none";
+}
+
+export interface PropertyAnalysis {
+  propertyId: string;
+  knowledgeHealthScore: number; // 0-100
+  topics: TopicAnalysis[];
+  totalReviews: number;
+  reviewsWithText: number;
+  topGaps: TopicAnalysis[];
+}
+
+const NOW = new Date("2026-04-13");
+const STALE_THRESHOLD_DAYS = 180; // 6 months
+
+function isPropertyAmenityRelevant(property: Property, topic: Topic): boolean {
+  if (topic.amenityKeys.length === 0) return true; // always relevant (cleanliness, noise, etc.)
+
+  const allAmenityText = [
+    ...property.popular_amenities_list,
+    ...property.property_amenity_food_and_drink,
+    ...property.property_amenity_spa,
+    ...property.property_amenity_outdoor,
+    ...property.property_amenity_internet,
+    ...property.property_amenity_parking,
+    ...property.property_amenity_accessibility,
+    ...property.property_amenity_activities_nearby,
+    ...property.property_amenity_more,
+    property.property_description,
+  ].join(" ").toLowerCase();
+
+  return topic.amenityKeys.some((key) => allAmenityText.includes(key.replace(/_/g, " ")) || allAmenityText.includes(key));
+}
+
+function detectSentiment(reviews: Review[], topicId: string): {
+  sentiment: "positive" | "negative" | "mixed" | "unknown";
+  confidence: number;
+} {
+  const posWords = ["great", "excellent", "amazing", "wonderful", "fantastic", "loved", "perfect",
+    "good", "nice", "lovely", "outstanding", "superb", "best", "clean", "comfortable",
+    "helpful", "friendly", "beautiful", "delicious", "spacious", "modern", "recommend"];
+  const negWords = ["bad", "poor", "terrible", "awful", "horrible", "worst", "dirty", "rude",
+    "disappointing", "disgusting", "broken", "noisy", "stained", "cold", "slow",
+    "unfriendly", "unhelpful", "cramped", "outdated", "overpriced", "smelly", "avoid"];
+
+  let posCount = 0;
+  let negCount = 0;
+
+  for (const review of reviews) {
+    const text = (review.review_text || "").toLowerCase();
+    if (!text) continue;
+    const covered = classifyText(text);
+    if (!covered.has(topicId)) continue;
+
+    for (const w of posWords) if (text.includes(w)) posCount++;
+    for (const w of negWords) if (text.includes(w)) negCount++;
+  }
+
+  const total = posCount + negCount;
+  if (total === 0) return { sentiment: "unknown", confidence: 0 };
+
+  const confidence = Math.min(1, total / 20);
+  if (posCount > negCount * 2) return { sentiment: "positive", confidence };
+  if (negCount > posCount * 2) return { sentiment: "negative", confidence };
+  return { sentiment: "mixed", confidence };
+}
+
+function detectSentimentShift(reviews: Review[], topicId: string): boolean {
+  const cutoff = new Date(NOW);
+  cutoff.setMonth(cutoff.getMonth() - 3);
+
+  const recent = reviews.filter((r) => {
+    const d = parseReviewDate(r.acquisition_date);
+    return d >= cutoff && classifyText(r.review_text || "").has(topicId);
+  });
+  const older = reviews.filter((r) => {
+    const d = parseReviewDate(r.acquisition_date);
+    return d < cutoff && classifyText(r.review_text || "").has(topicId);
+  });
+
+  if (recent.length < 2 || older.length < 5) return false;
+
+  const negWords = ["bad", "poor", "terrible", "awful", "horrible", "dirty", "disappointing", "broken", "noisy"];
+  const recentNegRatio = recent.filter((r) => negWords.some((w) => r.review_text?.toLowerCase().includes(w))).length / recent.length;
+  const olderNegRatio = older.filter((r) => negWords.some((w) => r.review_text?.toLowerCase().includes(w))).length / older.length;
+
+  return Math.abs(recentNegRatio - olderNegRatio) > 0.3;
+}
+
+export function analyzeProperty(property: Property, reviews: Review[]): PropertyAnalysis {
+  const reviewsWithText = reviews.filter((r) => r.review_text && r.review_text.trim().length > 0);
+
+  const topics: TopicAnalysis[] = TOPICS.map((topic) => {
+    const isRelevant = isPropertyAmenityRelevant(property, topic);
+
+    const mentioningReviews = reviewsWithText.filter((r) =>
+      classifyText(r.review_text).has(topic.id)
+    );
+
+    const reviewCount = mentioningReviews.length;
+    const coverageScore = Math.min(1, reviewCount / 10);
+
+    let freshnessDays: number | null = null;
+    let lastMentionDate: string | null = null;
+    let freshnessScore = 0;
+
+    if (mentioningReviews.length > 0) {
+      const dates = mentioningReviews.map((r) => parseReviewDate(r.acquisition_date));
+      const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
+      freshnessDays = Math.floor((NOW.getTime() - latest.getTime()) / (1000 * 60 * 60 * 24));
+      freshnessScore = Math.max(0, 1 - freshnessDays / 365);
+      lastMentionDate = latest.toISOString().split("T")[0];
+    }
+
+    const { sentiment, confidence: sentimentConfidence } = detectSentiment(reviewsWithText, topic.id);
+    const hasSentimentConsensus = sentiment !== "mixed" && sentiment !== "unknown";
+    const hasSentimentShift = detectSentimentShift(reviewsWithText, topic.id);
+
+    const topicScore = isRelevant
+      ? coverageScore * 0.4 + freshnessScore * 0.4 + (hasSentimentConsensus ? 0.2 : 0)
+      : 1; // non-relevant topics don't drag the score
+
+    const isStale = isRelevant && freshnessDays !== null && freshnessDays > STALE_THRESHOLD_DAYS;
+
+    // Gap priority
+    let gap: "high" | "medium" | "low" | "none" = "none";
+    if (isRelevant) {
+      if (reviewCount === 0) gap = "high";
+      else if (reviewCount < 3 || isStale) gap = "medium";
+      else if (coverageScore < 0.5) gap = "low";
+    }
+
+    return {
+      topicId: topic.id,
+      topicLabel: topic.label,
+      isRelevant,
+      reviewCount,
+      coverageScore,
+      freshnessDays,
+      freshnessScore,
+      sentiment,
+      sentimentConfidence,
+      topicScore,
+      isStale,
+      hasSentimentShift,
+      lastMentionDate,
+      gap,
+    };
+  });
+
+  const relevantTopics = topics.filter((t) => t.isRelevant);
+  const knowledgeHealthScore = relevantTopics.length > 0
+    ? Math.round((relevantTopics.reduce((sum, t) => sum + t.topicScore, 0) / relevantTopics.length) * 100)
+    : 0;
+
+  const topGaps = topics
+    .filter((t) => t.isRelevant && t.gap !== "none")
+    .sort((a, b) => {
+      const gapOrder = { high: 0, medium: 1, low: 2, none: 3 };
+      return gapOrder[a.gap] - gapOrder[b.gap];
+    })
+    .slice(0, 5);
+
+  return {
+    propertyId: property.eg_property_id,
+    knowledgeHealthScore,
+    topics,
+    totalReviews: reviews.length,
+    reviewsWithText: reviewsWithText.length,
+    topGaps,
+  };
+}
+
+export function getKnowledgeHealthColor(score: number): string {
+  if (score >= 75) return "#22c55e"; // green
+  if (score >= 50) return "#f59e0b"; // amber
+  return "#ef4444"; // red
+}
+
+export function getKnowledgeHealthLabel(score: number): string {
+  if (score >= 75) return "Excellent";
+  if (score >= 60) return "Good";
+  if (score >= 40) return "Fair";
+  return "Needs Attention";
+}
+
+export function computeNewHealthScore(
+  currentAnalysis: PropertyAnalysis,
+  newlyCoveredTopics: string[]
+): number {
+  const updatedTopics = currentAnalysis.topics.map((t) => {
+    if (newlyCoveredTopics.includes(t.topicId) && t.isRelevant) {
+      // Simulate adding one fresh high-quality review for this topic
+      const newCoverageScore = Math.min(1, (t.reviewCount + 1) / 10);
+      const newFreshnessScore = 1.0; // just submitted
+      return {
+        ...t,
+        topicScore: newCoverageScore * 0.4 + newFreshnessScore * 0.4 + 0.2,
+      };
+    }
+    return t;
+  });
+
+  const relevantTopics = updatedTopics.filter((t) => t.isRelevant);
+  return relevantTopics.length > 0
+    ? Math.round((relevantTopics.reduce((sum, t) => sum + t.topicScore, 0) / relevantTopics.length) * 100)
+    : 0;
+}

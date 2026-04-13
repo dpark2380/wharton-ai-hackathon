@@ -1,64 +1,169 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { loadProperties, loadReviews } from "@/lib/data";
+import { analyzeProperty } from "@/lib/analysis";
+import PropertyCard from "@/components/PropertyCard";
+import { BarChart3, Sparkles, TrendingUp } from "lucide-react";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+function LoadingSkeleton() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2xl border border-[#e5e0d8] p-5 h-72 shimmer" />
+      ))}
+    </div>
+  );
+}
+
+async function PropertyGrid() {
+  const properties = loadProperties();
+  const reviews = loadReviews();
+
+  const cards = properties.map((property) => {
+    const propertyReviews = reviews.filter(
+      (r) => r.eg_property_id === property.eg_property_id
+    );
+    const analysis = analyzeProperty(property, propertyReviews);
+
+    return {
+      id: property.eg_property_id,
+      city: property.city,
+      country: property.country,
+      province: property.province,
+      star_rating: property.star_rating,
+      guestrating_avg_expedia: property.guestrating_avg_expedia,
+      popular_amenities_list: property.popular_amenities_list,
+      property_description: property.property_description,
+      knowledgeHealthScore: analysis.knowledgeHealthScore,
+      totalReviews: analysis.totalReviews,
+      topGaps: analysis.topGaps,
+      topTopics: analysis.topics
+        .filter((t) => t.isRelevant)
+        .sort((a, b) => b.coverageScore - a.coverageScore)
+        .slice(0, 5),
+    };
+  });
+
+  // Sort: lowest health score first (most need attention)
+  cards.sort((a, b) => a.knowledgeHealthScore - b.knowledgeHealthScore);
+
+  const avgScore = Math.round(
+    cards.reduce((s, c) => s + c.knowledgeHealthScore, 0) / cards.length
+  );
+  const totalReviews = cards.reduce((s, c) => s + c.totalReviews, 0);
+  const highGapCount = cards.filter((c) => c.knowledgeHealthScore < 50).length;
+
+  return (
+    <>
+      {/* Stats bar */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        {[
+          {
+            icon: <BarChart3 className="w-5 h-5" style={{ color: "#ff6b35" }} />,
+            value: cards.length,
+            label: "Properties",
+            sub: "in portfolio",
+          },
+          {
+            icon: <TrendingUp className="w-5 h-5 text-green-500" />,
+            value: totalReviews.toLocaleString(),
+            label: "Total Reviews",
+            sub: "analyzed",
+          },
+          {
+            icon: <Sparkles className="w-5 h-5 text-amber-500" />,
+            value: avgScore,
+            label: "Avg Health Score",
+            sub: `${highGapCount} need attention`,
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-2xl border border-[#e5e0d8] p-4 flex items-center gap-3"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="p-2 bg-[#faf8f5] rounded-xl">{stat.icon}</div>
+            <div>
+              <p className="text-2xl font-bold text-[#1a1a2e]">{stat.value}</p>
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">{stat.label}</span> {stat.sub}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Property grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {cards.map((card, i) => (
+          <PropertyCard key={card.id} {...card} index={i} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen" style={{ background: "#faf8f5" }}>
+      {/* Header */}
+      <header style={{ background: "#1a1a2e" }} className="sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+              style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
+            >
+              E
+            </div>
+            <div>
+              <span className="text-white font-bold text-lg">Ask What Matters</span>
+              <span className="text-gray-500 text-xs block">Expedia Review Intelligence</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+            Powered by GPT-4o mini
+          </div>
         </div>
+      </header>
+
+      {/* Hero */}
+      <div style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)" }}>
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="max-w-2xl animate-fade-in-up">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4"
+              style={{ background: "#ff6b3520", color: "#ff6b35", border: "1px solid #ff6b3540" }}
+            >
+              <Sparkles className="w-3 h-3" />
+              Wharton Hack-AI-thon 2026 · Expedia Group
+            </div>
+            <h1 className="text-4xl font-extrabold text-white leading-tight mb-3">
+              Reviews that{" "}
+              <span className="gradient-text">actually answer</span>{" "}
+              what matters
+            </h1>
+            <p className="text-gray-300 text-base leading-relaxed">
+              Our AI detects knowledge gaps in hotel reviews and asks reviewers the
+              exact follow-up questions that fill them — turning incomplete feedback
+              into actionable property intelligence.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-[#1a1a2e]">Property Portfolio</h2>
+            <p className="text-sm text-gray-500">Sorted by knowledge health score — lowest first</p>
+          </div>
+        </div>
+        <Suspense fallback={<LoadingSkeleton />}>
+          <PropertyGrid />
+        </Suspense>
       </main>
     </div>
   );
