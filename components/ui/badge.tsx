@@ -38,6 +38,10 @@ function Badge({
     props: mergeProps<"span">(
       {
         className: cn(badgeVariants({ variant }), className),
+        // Prevent Google Translate from injecting <font> tags into badge text,
+        // which causes hydration mismatches. Badges contain system labels, not
+        // user-facing translatable content.
+        translate: "no",
       },
       props
     ),

@@ -100,7 +100,11 @@ export default function KnowledgeHealthScore({
         </div>
       </div>
       {showLabel && (
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color }}>
+        <span
+          className="text-xs font-semibold uppercase tracking-wide"
+          style={{ color }}
+          translate="no"
+        >
           {label}
         </span>
       )}
