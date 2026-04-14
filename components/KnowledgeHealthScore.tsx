@@ -27,7 +27,7 @@ export default function KnowledgeHealthScore({
   const color = getKnowledgeHealthColor(score);
   const label = getKnowledgeHealthLabel(score);
 
-  // Always start at actual score for SSR — no mismatch
+  // Always start at actual score for SSR - no mismatch
   const [displayScore, setDisplayScore] = useState(score);
   const [dashOffset, setDashOffset] = useState(
     circumference - (score / 100) * circumference

@@ -20,7 +20,7 @@ const SUBCATEGORIES: {
   { key: "ecofriendliness",      label: "Eco-Friendliness", description: "Sustainability practices" },
 ];
 
-// Keys that are almost always null in this dataset — only show if they have data
+// Keys that are almost always null in this dataset - only show if they have data
 const SPARSE_KEYS = new Set([
   "roomquality", "convenienceoflocation", "neighborhoodsatisfaction",
   "valueformoney", "communication", "checkin", "onlinelisting", "location",
@@ -225,7 +225,7 @@ export default function RatingAnalytics({ reviews }: RatingAnalyticsProps) {
           })}
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          These subcategories have low completion rates — smart follow-up questions can help fill them.
+          These subcategories have low completion rates. Smart follow-up questions can help fill them.
         </p>
       </div>
     </div>

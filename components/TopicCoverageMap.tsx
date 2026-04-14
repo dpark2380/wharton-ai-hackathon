@@ -69,6 +69,7 @@ export default function TopicCoverageMap({ topics }: TopicCoverageMapProps) {
   );
 }
 
+
 function TopicCell({ topic }: { topic: TopicAnalysis }) {
   const bgColor = topic.reviewCount === 0 ? "#fef2f2" : topic.gap === "none" ? "#f0fdf4" : "#fffbeb";
   const borderColor = topic.reviewCount === 0 ? "#fecaca" : topic.gap === "none" ? "#bbf7d0" : "#fde68a";
@@ -123,6 +124,7 @@ function TopicCell({ topic }: { topic: TopicAnalysis }) {
           Last: {new Date(topic.lastMentionDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
         </div>
       )}
+
     </div>
   );
 }

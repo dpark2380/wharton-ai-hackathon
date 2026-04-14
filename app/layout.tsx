@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ask What Matters — Expedia Hotel Review Intelligence",
+  title: "Ask What Matters: Expedia Hotel Review Intelligence",
   description: "Dynamically generated follow-up questions that fill hotel information gaps for Expedia reviewers.",
 };
 

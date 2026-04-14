@@ -12,13 +12,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing propertyId" }, { status: 400 });
     }
 
-    // ── Server-side review quality gate ──────────────────────────────────────
-    const quality = checkTextQuality(reviewText || "");
-    if (!quality.isValid) {
-      return NextResponse.json(
-        { error: "low_quality", feedback: quality.feedback },
-        { status: 422 }
-      );
+    // ── Server-side review quality gate (only when text was provided) ────────
+    if (reviewText && reviewText.trim()) {
+      const quality = checkTextQuality(reviewText);
+      if (!quality.isValid) {
+        return NextResponse.json(
+          { error: "low_quality", feedback: quality.feedback },
+          { status: 422 }
+        );
+      }
     }
     // ─────────────────────────────────────────────────────────────────────────
 

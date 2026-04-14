@@ -154,7 +154,7 @@ export default function BeforeAfterScore({
         style={{ background: "linear-gradient(135deg, #fff7f4, #fffbeb)" }}
       >
         <p className="text-sm font-medium text-[#1a1a2e]">
-          🙏 Thank you for helping future travelers make better decisions!
+          Thank you for helping future travelers make better decisions!
         </p>
         <p className="text-xs text-gray-500 mt-1">
           Your insights will help Expedia surface more accurate property information.

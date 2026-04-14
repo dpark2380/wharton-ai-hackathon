@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadProperties, loadReviews } from "@/lib/data";
 import { analyzeProperty } from "@/lib/analysis";
 import { MapPin, Star, ArrowRight, Sparkles } from "lucide-react";
+import { generateHotelDisplayName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,7 @@ export default function ReviewLandingPage() {
     const pr = reviews.filter((r) => r.eg_property_id === p.eg_property_id);
     const analysis = analyzeProperty(p, pr);
     const location = [p.city, p.province, p.country].filter(Boolean).join(", ");
-    const shortName = p.property_description
-      .replace(/\|MASK\|/g, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 55);
+    const shortName = generateHotelDisplayName(p.property_description, p.city, p.country, p.star_rating);
     return {
       id: p.eg_property_id,
       name: shortName,
@@ -45,11 +41,11 @@ export default function ReviewLandingPage() {
       {/* Header */}
       <header style={{ background: "#1a1a2e" }} className="sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
               style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}>E</div>
             <span className="text-white font-bold text-sm">Ask What Matters</span>
-          </div>
+          </Link>
           <Link href="/" className="text-xs text-gray-400 hover:text-white transition-colors">
             Hotel Manager View →
           </Link>

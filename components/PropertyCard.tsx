@@ -2,15 +2,40 @@
 
 import { useRouter } from "next/navigation";
 import KnowledgeHealthScore from "./KnowledgeHealthScore";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, MessageSquare, AlertTriangle, TrendingUp } from "lucide-react";
+import { MapPin, Star, MessageSquare, TrendingUp } from "lucide-react";
 
 interface TopGap {
   topicId: string;
   topicLabel: string;
   gap: string;
   reviewCount: number;
+  freshnessDays: number | null;
 }
+
+type UrgencyTier = "critical" | "urgent" | "monitor" | "low";
+
+function getUrgencyTier(gap: TopGap): UrgencyTier {
+  if (gap.reviewCount === 0) return "critical";
+  if (gap.freshnessDays !== null && gap.freshnessDays > 365) return "urgent";
+  if (gap.freshnessDays !== null && gap.freshnessDays > 180) return "monitor";
+  return "low";
+}
+
+function getUrgencyLabel(gap: TopGap): string {
+  if (gap.reviewCount === 0) return "Never reviewed";
+  if (gap.freshnessDays !== null) {
+    const months = Math.round(gap.freshnessDays / 30);
+    return `${months}mo old`;
+  }
+  return "Sparse coverage";
+}
+
+const URGENCY_STYLE: Record<UrgencyTier, { label: string; color: string; bg: string; border: string; dot: string }> = {
+  critical: { label: "CRITICAL", color: "#dc2626", bg: "#fef2f2", border: "#fecaca", dot: "#dc2626" },
+  urgent:   { label: "URGENT",   color: "#ea580c", bg: "#fff7ed", border: "#fed7aa", dot: "#ea580c" },
+  monitor:  { label: "MONITOR",  color: "#ca8a04", bg: "#fefce8", border: "#fef08a", dot: "#ca8a04" },
+  low:      { label: "LOW",      color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", dot: "#2563eb" },
+};
 
 interface PropertyCardProps {
   id: string;
@@ -28,24 +53,6 @@ interface PropertyCardProps {
   index: number;
 }
 
-const AMENITY_ICONS: Record<string, string> = {
-  pool: "🏊",
-  spa: "💆",
-  restaurant: "🍽️",
-  bar: "🍸",
-  gym: "💪",
-  fitness_equipment: "🏋️",
-  parking: "🅿️",
-  free_parking: "🅿️",
-  internet: "📶",
-  breakfast_included: "🥞",
-  breakfast_available: "🥞",
-  pet_friendly: "🐾",
-  hot_tub: "♨️",
-  ac: "❄️",
-  elevator: "🛗",
-  laundry: "👕",
-};
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -98,19 +105,41 @@ export default function PropertyCard({
 }: PropertyCardProps) {
   const router = useRouter();
 
-  const location = [city, province, country].filter(Boolean).join(", ");
-  const shortDesc = property_description
-    .replace(/\|MASK\|/g, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 100);
+  // Helper to capitalize words (e.g., "new york" -> "New York")
+  const toTitleCase = (str: string) => {
+    if (!str) return "";
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Helper to capitalize just the first letter (e.g., for descriptions)
+  const capitalizeFirst = (str: string) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
+  const rawLocation = [city, province, country].filter(Boolean).join(", ");
+  const location = toTitleCase(rawLocation);
+
+  const shortDesc = capitalizeFirst(
+    property_description
+      .replace(/\|MASK\|/g, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  ).slice(0, 100);
 
   const topAmenities = popular_amenities_list.slice(0, 6);
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-sm border border-[#e5e0d8] p-5 cursor-pointer card-hover animate-fade-in-up stagger-${Math.min(index + 1, 6)}`}
+      className={`bg-white rounded-2xl shadow-sm border border-[#e5e0d8] p-5 cursor-pointer card-hover animate-fade-in-up stagger-${Math.min(
+        index + 1,
+        6
+      )}`}
       onClick={() => router.push(`/property/${id}`)}
     >
       {/* Header */}
@@ -159,8 +188,7 @@ export default function PropertyCard({
               key={amenity}
               className="inline-flex items-center gap-1 text-xs bg-[#f0ede8] text-gray-600 px-2 py-0.5 rounded-full"
             >
-              {AMENITY_ICONS[amenity] || "•"}{" "}
-              {amenity.replace(/_/g, " ")}
+              {toTitleCase(amenity.replace(/_/g, " "))}
             </span>
           ))}
         </div>
@@ -176,7 +204,9 @@ export default function PropertyCard({
             {topTopics.slice(0, 3).map((t) => (
               <div key={t.topicLabel} className="flex items-center gap-2">
                 <SentimentDot sentiment={t.sentiment} />
-                <span className="text-xs text-gray-600 w-24 truncate">{t.topicLabel}</span>
+                <span className="text-xs text-gray-600 w-24 truncate">
+                  {toTitleCase(t.topicLabel)}
+                </span>
                 <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-700"
@@ -200,23 +230,29 @@ export default function PropertyCard({
         </div>
       )}
 
-      {/* Gaps */}
+      {/* Gap urgency badges */}
       {topGaps.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
-          {topGaps.slice(0, 2).map((gap) => (
-            <Badge
-              key={gap.topicId}
-              variant="outline"
-              className="text-xs border-amber-300 text-amber-700 bg-amber-50 gap-1"
-            >
-              <AlertTriangle className="w-3 h-3" />
-              {gap.topicLabel} gap
-            </Badge>
-          ))}
+          {topGaps.slice(0, 2).map((gap) => {
+            const tier = getUrgencyTier(gap);
+            const style = URGENCY_STYLE[tier];
+            return (
+              <span
+                key={gap.topicId}
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
+                style={{ color: style.color, background: style.bg, borderColor: style.border }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: style.dot }} />
+                <span>{style.label}:</span>
+                <span className="font-medium">{toTitleCase(gap.topicLabel)}</span>
+                <span className="font-normal opacity-75">· {getUrgencyLabel(gap)}</span>
+              </span>
+            );
+          })}
         </div>
       )}
 
-      {/* CTA — pointer-events:none so the outer div click fires cleanly */}
+      {/* CTA */}
       <div className="mt-4 pointer-events-none">
         <div
           className="w-full text-sm font-semibold py-2 rounded-xl text-white text-center transition-all duration-200"

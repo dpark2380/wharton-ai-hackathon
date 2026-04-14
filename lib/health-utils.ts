@@ -1,4 +1,4 @@
-// Pure client-safe utilities — no `fs` or server-only imports
+// Pure client-safe utilities - no `fs` or server-only imports
 
 export function getKnowledgeHealthColor(score: number): string {
   if (score >= 75) return "#22c55e";

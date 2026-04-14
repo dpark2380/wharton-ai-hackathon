@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Star, ArrowRight, Loader2, Mic, AlertCircle } from "lucide-react";
 import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
@@ -24,6 +24,7 @@ interface ReviewFlowProps {
   city: string;
   country: string;
   currentHealthScore: number;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 type Step = "write" | "questions" | "thankyou";
@@ -41,6 +42,7 @@ export default function ReviewFlow({
   city,
   country,
   currentHealthScore,
+  onDirtyChange,
 }: ReviewFlowProps) {
   const [step, setStep] = useState<Step>("write");
   const [overallRating, setOverallRating] = useState(0);
@@ -60,29 +62,39 @@ export default function ReviewFlow({
   const stepNumbers: Record<Step, number> = { write: 1, questions: 2, thankyou: 3 };
   const currentStep = stepNumbers[step];
 
+  // Notify parent whether a review is in progress
+  const isDirty = step === "questions" || (step === "write" && (overallRating > 0 || reviewText.trim().length > 0));
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty]);
+
   const answeredTopicIds = answers.map((a) => a.topicId);
 
   const handleSubmitReview = async () => {
-    if (!reviewText.trim() || overallRating === 0) return;
+    if (overallRating === 0) return;
 
-    // ── Client-side quality check (instant feedback, no round-trip) ──────────
-    const quality = checkTextQuality(reviewText);
-    if (!quality.isValid) {
-      setQualityError(quality.feedback);
-      return;
+    // ── Client-side quality check (only when text is provided) ───────────────
+    if (reviewText.trim()) {
+      const quality = checkTextQuality(reviewText);
+      if (!quality.isValid) {
+        setQualityError(quality.feedback);
+        return;
+      }
     }
     setQualityError(null);
     // ─────────────────────────────────────────────────────────────────────────
 
     setIsAnalyzing(true);
     try {
-      const analyzeRes = await fetch("/api/analyze-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewText }),
-      });
-      const { coveredTopics } = await analyzeRes.json();
-      const coveredIds = (coveredTopics ?? []).map((t: { id: string }) => t.id);
+      // Skip analyze step when no text — no topics covered yet
+      const coveredIds: string[] = [];
+      if (reviewText.trim()) {
+        const analyzeRes = await fetch("/api/analyze-review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reviewText }),
+        });
+        const { coveredTopics } = await analyzeRes.json();
+        coveredIds.push(...(coveredTopics ?? []).map((t: { id: string }) => t.id));
+      }
 
       const genRes = await fetch("/api/generate-questions", {
         method: "POST",
@@ -149,7 +161,7 @@ export default function ReviewFlow({
           .map((a) => a.topicLabel),
       });
     } catch {
-      // Graceful fallback — still show the result
+      // Graceful fallback - still show the result
       setScoreResult({
         previousScore: currentHealthScore,
         newScore: Math.min(100, currentHealthScore + answers.length * 4),
@@ -230,12 +242,23 @@ export default function ReviewFlow({
         )}
 
         {step === "thankyou" && scoreResult && (
-          <BeforeAfterScore
-            previousScore={scoreResult.previousScore}
-            newScore={scoreResult.newScore}
-            improvement={scoreResult.improvement}
-            improvedTopics={scoreResult.improvedTopics}
-          />
+          <div className="flex flex-col items-center">
+            <BeforeAfterScore
+              previousScore={scoreResult.previousScore}
+              newScore={scoreResult.newScore}
+              improvement={scoreResult.improvement}
+              improvedTopics={scoreResult.improvedTopics}
+            />
+            
+            {/* Added Return Button */}
+            <button
+              onClick={() => window.location.href = '/'}
+              className="mt-8 px-8 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
+            >
+              Return to Main Menu
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -266,7 +289,7 @@ function WriteStep({
   onVoiceTranscript: (s: string) => void;
   onSubmit: () => void;
 }) {
-  const canSubmit = overallRating > 0 && reviewText.trim().length > 0 && !isAnalyzing;
+  const canSubmit = overallRating > 0 && !isAnalyzing;
   const quality = reviewText.trim().length > 0 ? checkTextQuality(reviewText) : null;
 
   // Visual quality indicator
@@ -281,7 +304,7 @@ function WriteStep({
       <div>
         <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">Share Your Experience</h2>
         <p className="text-sm text-gray-500">
-          Tell us about your stay — we'll ask the right follow-up questions.
+          Tell us about your stay. We'll ask the right follow-up questions.
         </p>
       </div>
 
@@ -317,7 +340,7 @@ function WriteStep({
       {/* Text + voice */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-[#1a1a2e]">Your Review</p>
+          <p className="text-sm font-semibold text-[#1a1a2e]">Your Review <span className="text-gray-400 font-normal">(optional)</span></p>
           <VoiceInput onTranscript={onVoiceTranscript} />
         </div>
         <textarea
@@ -332,7 +355,7 @@ function WriteStep({
           }`}
         />
 
-        {/* Quality bar — live as they type */}
+        {/* Quality bar - live as they type */}
         {reviewText.trim().length > 0 && (
           <div className="mt-2 space-y-1">
             <div className="flex items-center justify-between">

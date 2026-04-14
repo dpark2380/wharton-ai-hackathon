@@ -11,6 +11,10 @@ export interface TopicAnalysis {
   freshnessScore: number;   // 0-1
   sentiment: "positive" | "negative" | "mixed" | "unknown";
   sentimentConfidence: number; // 0-1
+  // Hybrid scoring signals
+  structuredRatingScore: number | null; // 0-1 from sub-rating fields; null = no data
+  textSentimentScore: number;           // 0-1 from keyword analysis of review text
+  hybridSentimentScore: number;         // 0-1 blended (S1×0.55 + S2×0.45, or S2 alone)
   topicScore: number;       // 0-1, weighted composite
   isStale: boolean;
   hasSentimentShift: boolean;
@@ -49,25 +53,46 @@ function isPropertyAmenityRelevant(property: Property, topic: Topic): boolean {
   return topic.amenityKeys.some((key) => allAmenityText.includes(key.replace(/_/g, " ")) || allAmenityText.includes(key));
 }
 
-// Now takes pre-filtered mentioning reviews — no re-classification needed
+const POS_WORDS = ["great", "excellent", "amazing", "wonderful", "fantastic", "loved", "perfect",
+  "good", "nice", "lovely", "outstanding", "superb", "best", "clean", "comfortable",
+  "helpful", "friendly", "beautiful", "delicious", "spacious", "modern", "recommend"];
+const NEG_WORDS = ["bad", "poor", "terrible", "awful", "horrible", "worst", "dirty", "rude",
+  "disappointing", "disgusting", "broken", "noisy", "stained", "cold", "slow",
+  "unfriendly", "unhelpful", "cramped", "outdated", "overpriced", "smelly", "avoid"];
+
+// Signal 2: continuous 0-1 sentiment score derived from review text keywords
+function detectTextSentimentScore(mentioningReviews: Review[]): number {
+  if (mentioningReviews.length === 0) return 0.5; // no data - neutral
+
+  let posCount = 0;
+  let negCount = 0;
+  for (const review of mentioningReviews) {
+    const text = (review.review_text || "").toLowerCase();
+    for (const w of POS_WORDS) if (text.includes(w)) posCount++;
+    for (const w of NEG_WORDS) if (text.includes(w)) negCount++;
+  }
+
+  const total = posCount + negCount;
+  if (total === 0) return 0.5;
+
+  // Map purely-positive → 0.9, purely-negative → 0.1
+  const positiveRatio = posCount / total;
+  return 0.1 + positiveRatio * 0.8;
+}
+
+// Categorical label + confidence (kept for backward-compat UI fields)
 function detectSentiment(mentioningReviews: Review[]): {
   sentiment: "positive" | "negative" | "mixed" | "unknown";
   confidence: number;
 } {
-  const posWords = ["great", "excellent", "amazing", "wonderful", "fantastic", "loved", "perfect",
-    "good", "nice", "lovely", "outstanding", "superb", "best", "clean", "comfortable",
-    "helpful", "friendly", "beautiful", "delicious", "spacious", "modern", "recommend"];
-  const negWords = ["bad", "poor", "terrible", "awful", "horrible", "worst", "dirty", "rude",
-    "disappointing", "disgusting", "broken", "noisy", "stained", "cold", "slow",
-    "unfriendly", "unhelpful", "cramped", "outdated", "overpriced", "smelly", "avoid"];
+  if (mentioningReviews.length === 0) return { sentiment: "unknown", confidence: 0 };
 
   let posCount = 0;
   let negCount = 0;
-
   for (const review of mentioningReviews) {
     const text = (review.review_text || "").toLowerCase();
-    for (const w of posWords) if (text.includes(w)) posCount++;
-    for (const w of negWords) if (text.includes(w)) negCount++;
+    for (const w of POS_WORDS) if (text.includes(w)) posCount++;
+    for (const w of NEG_WORDS) if (text.includes(w)) negCount++;
   }
 
   const total = posCount + negCount;
@@ -77,6 +102,25 @@ function detectSentiment(mentioningReviews: Review[]): {
   if (posCount > negCount * 2) return { sentiment: "positive", confidence };
   if (negCount > posCount * 2) return { sentiment: "negative", confidence };
   return { sentiment: "mixed", confidence };
+}
+
+// Signal 1: average of structured rating sub-categories, normalized 0-1
+// Returns null when no reviews carry non-zero values for those fields
+function computeStructuredRatingScore(reviews: Review[], ratingKeys: string[]): number | null {
+  if (ratingKeys.length === 0) return null;
+
+  const values: number[] = [];
+  for (const review of reviews) {
+    const r = review.rating as Record<string, number>;
+    for (const key of ratingKeys) {
+      const val = r[key];
+      if (val && val > 0) values.push(val); // 0 means the reviewer didn't rate this sub-category
+    }
+  }
+
+  if (values.length === 0) return null;
+  const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+  return avg / 5; // normalize: 5-star max → 1.0
 }
 
 function detectSentimentShift(reviews: Review[], topicSets: Set<string>[], topicId: string): boolean {
@@ -101,7 +145,7 @@ function detectSentimentShift(reviews: Review[], topicSets: Set<string>[], topic
   return Math.abs(recentNegRatio - olderNegRatio) > 0.3;
 }
 
-// Module-level cache — populated once per cold start
+// Module-level cache - populated once per cold start
 const _analysisCache = new Map<string, PropertyAnalysis>();
 
 export function analyzeProperty(property: Property, reviews: Review[]): PropertyAnalysis {
@@ -136,11 +180,27 @@ export function analyzeProperty(property: Property, reviews: Review[]): Property
     }
 
     const { sentiment, confidence: sentimentConfidence } = detectSentiment(mentioningReviews);
-    const hasSentimentConsensus = sentiment !== "mixed" && sentiment !== "unknown";
     const hasSentimentShift = detectSentimentShift(reviewsWithText, reviewTopicSets, topic.id);
 
+    // ── Hybrid scoring ─────────────────────────────────────────────────────────
+    // Signal 1: structured sub-ratings across all reviews for this property
+    const structuredRatingScore = computeStructuredRatingScore(reviews, topic.ratingKeys);
+
+    // Signal 2: keyword sentiment on text reviews mentioning this topic
+    const textSentimentScore = detectTextSentimentScore(mentioningReviews);
+
+    // Blend: structured ratings enrich text sentiment, but only when text coverage exists.
+    // Zero text coverage = still a knowledge gap regardless of sub-ratings.
+    const hybridSentimentScore = reviewCount > 0 && structuredRatingScore !== null
+      ? structuredRatingScore * 0.55 + textSentimentScore * 0.45
+      : reviewCount > 0
+      ? textSentimentScore
+      : 0.5; // neutral - no text data to draw from
+
     const topicScore = isRelevant
-      ? coverageScore * 0.4 + freshnessScore * 0.4 + (hasSentimentConsensus ? 0.2 : 0)
+      ? reviewCount === 0
+        ? 0 // no text mentions = no knowledge = zero contribution
+        : coverageScore * 0.35 + freshnessScore * 0.35 + hybridSentimentScore * 0.30
       : 1; // non-relevant topics don't drag the score
 
     const isStale = isRelevant && freshnessDays !== null && freshnessDays > STALE_THRESHOLD_DAYS;
@@ -163,6 +223,9 @@ export function analyzeProperty(property: Property, reviews: Review[]): Property
       freshnessScore,
       sentiment,
       sentimentConfidence,
+      structuredRatingScore,
+      textSentimentScore,
+      hybridSentimentScore,
       topicScore,
       isStale,
       hasSentimentShift,
@@ -216,12 +279,15 @@ export function computeNewHealthScore(
 ): number {
   const updatedTopics = currentAnalysis.topics.map((t) => {
     if (newlyCoveredTopics.includes(t.topicId) && t.isRelevant) {
-      // Simulate adding one fresh high-quality review for this topic
+      // Simulate adding one fresh positive review for this topic
       const newCoverageScore = Math.min(1, (t.reviewCount + 1) / 10);
       const newFreshnessScore = 1.0; // just submitted
+      const newHybridSentiment = t.hybridSentimentScore > 0.5
+        ? Math.min(1, t.hybridSentimentScore + 0.05) // slight positive nudge
+        : 0.75; // new answer assumed positive
       return {
         ...t,
-        topicScore: newCoverageScore * 0.4 + newFreshnessScore * 0.4 + 0.2,
+        topicScore: newCoverageScore * 0.35 + newFreshnessScore * 0.35 + newHybridSentiment * 0.30,
       };
     }
     return t;
