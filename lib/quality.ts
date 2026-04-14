@@ -1,4 +1,4 @@
-// Client-safe — no fs or server-only imports
+// Client-safe - no fs or server-only imports
 // Used in both client components and API routes
 
 export interface QualityResult {
@@ -87,7 +87,7 @@ export function checkTextQuality(text: string): QualityResult {
     };
   }
 
-  // Passed — compute a quality score
+  // Passed - compute a quality score
   const lengthBonus = Math.min(0.3, words.length / 50);
   const diversityBonus = Math.min(0.2, (uniqueChars - 5) / 25);
   const vocabBonus = uniqueWords.size > 12 ? 0.1 : 0;
@@ -97,7 +97,7 @@ export function checkTextQuality(text: string): QualityResult {
 }
 
 /**
- * Validates a follow-up answer — preset options (yes/no, multiple choice)
+ * Validates a follow-up answer - preset options (yes/no, multiple choice)
  * always pass; free-text needs basic sanity.
  */
 export function checkAnswerQuality(

@@ -149,7 +149,7 @@ export default function ReviewFlow({
           .map((a) => a.topicLabel),
       });
     } catch {
-      // Graceful fallback — still show the result
+      // Graceful fallback - still show the result
       setScoreResult({
         previousScore: currentHealthScore,
         newScore: Math.min(100, currentHealthScore + answers.length * 4),
@@ -230,12 +230,23 @@ export default function ReviewFlow({
         )}
 
         {step === "thankyou" && scoreResult && (
-          <BeforeAfterScore
-            previousScore={scoreResult.previousScore}
-            newScore={scoreResult.newScore}
-            improvement={scoreResult.improvement}
-            improvedTopics={scoreResult.improvedTopics}
-          />
+          <div className="flex flex-col items-center">
+            <BeforeAfterScore
+              previousScore={scoreResult.previousScore}
+              newScore={scoreResult.newScore}
+              improvement={scoreResult.improvement}
+              improvedTopics={scoreResult.improvedTopics}
+            />
+            
+            {/* Added Return Button */}
+            <button
+              onClick={() => window.location.href = '/'}
+              className="mt-8 px-8 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
+            >
+              Return to Main Menu
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -281,7 +292,7 @@ function WriteStep({
       <div>
         <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">Share Your Experience</h2>
         <p className="text-sm text-gray-500">
-          Tell us about your stay — we'll ask the right follow-up questions.
+          Tell us about your stay. We'll ask the right follow-up questions.
         </p>
       </div>
 
@@ -332,7 +343,7 @@ function WriteStep({
           }`}
         />
 
-        {/* Quality bar — live as they type */}
+        {/* Quality bar - live as they type */}
         {reviewText.trim().length > 0 && (
           <div className="mt-2 space-y-1">
             <div className="flex items-center justify-between">

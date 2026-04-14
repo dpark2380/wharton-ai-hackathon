@@ -3,6 +3,7 @@ export interface Topic {
   label: string;
   keywords: string[];
   amenityKeys: string[]; // amenity keywords that make this topic relevant
+  ratingKeys: string[];  // structured sub-rating field names from Review.rating
 }
 
 export const TOPICS: Topic[] = [
@@ -15,6 +16,7 @@ export const TOPICS: Topic[] = [
       "fresh", "odor", "smell", "smelly", "wipe", "mold", "mould", "germ", "bacteria"
     ],
     amenityKeys: [],
+    ratingKeys: ["roomcleanliness", "hotelcondition"],
   },
   {
     id: "location",
@@ -26,6 +28,7 @@ export const TOPICS: Topic[] = [
       "city center", "quiet street", "noisy street", "surroundings"
     ],
     amenityKeys: ["convenienceoflocation", "neighborhoodsatisfaction"],
+    ratingKeys: ["location", "convenienceoflocation", "neighborhoodsatisfaction"],
   },
   {
     id: "food_breakfast",
@@ -37,6 +40,7 @@ export const TOPICS: Topic[] = [
       "included breakfast", "free breakfast", "bar", "snack"
     ],
     amenityKeys: ["breakfast", "restaurant", "bar", "food_and_drink"],
+    ratingKeys: [],
   },
   {
     id: "wifi_internet",
@@ -47,6 +51,7 @@ export const TOPICS: Topic[] = [
       "connectivity", "disconnect", "password", "hotspot"
     ],
     amenityKeys: ["internet", "wifi"],
+    ratingKeys: [],
   },
   {
     id: "parking",
@@ -57,6 +62,7 @@ export const TOPICS: Topic[] = [
       "parking fee", "parking spot", "underground parking"
     ],
     amenityKeys: ["parking", "free_parking"],
+    ratingKeys: [],
   },
   {
     id: "pool_fitness",
@@ -67,6 +73,7 @@ export const TOPICS: Topic[] = [
       "outdoor pool", "lap pool", "poolside", "weights", "treadmill", "spa pool"
     ],
     amenityKeys: ["pool", "fitness_equipment", "hot_tub", "outdoor"],
+    ratingKeys: ["roomamenitiesscore"],
   },
   {
     id: "checkin_checkout",
@@ -77,6 +84,7 @@ export const TOPICS: Topic[] = [
       "key card", "key", "welcome", "greeted", "wait", "queue", "line"
     ],
     amenityKeys: ["checkin", "frontdesk_24_hour"],
+    ratingKeys: ["checkin", "communication"],
   },
   {
     id: "noise",
@@ -87,6 +95,7 @@ export const TOPICS: Topic[] = [
       "earplugs", "thin walls", "sound insulation", "heard everything", "construction"
     ],
     amenityKeys: [],
+    ratingKeys: [],
   },
   {
     id: "room_comfort",
@@ -98,6 +107,7 @@ export const TOPICS: Topic[] = [
       "linens", "blanket", "duvet", "temperature", "air conditioning", "heating", "ac"
     ],
     amenityKeys: ["roomcomfort", "roomquality", "ac"],
+    ratingKeys: ["roomcomfort", "roomquality", "roomamenitiesscore"],
   },
   {
     id: "bathroom",
@@ -108,6 +118,7 @@ export const TOPICS: Topic[] = [
       "bidet", "hairdryer", "hair dryer", "vanity", "mirror", "en suite"
     ],
     amenityKeys: [],
+    ratingKeys: ["roomcleanliness"],
   },
   {
     id: "staff_service",
@@ -119,6 +130,7 @@ export const TOPICS: Topic[] = [
       "hospitality", "went above and beyond", "helpful staff", "team"
     ],
     amenityKeys: ["service", "guest_services"],
+    ratingKeys: ["service", "communication"],
   },
   {
     id: "value",
@@ -129,6 +141,7 @@ export const TOPICS: Topic[] = [
       "money's worth", "budget", "luxury", "bang for your buck"
     ],
     amenityKeys: ["valueformoney"],
+    ratingKeys: ["valueformoney"],
   },
   {
     id: "spa_wellness",
@@ -139,6 +152,7 @@ export const TOPICS: Topic[] = [
       "manicure", "pedicure", "nail", "relaxing", "rejuvenate"
     ],
     amenityKeys: ["spa"],
+    ratingKeys: [],
   },
   {
     id: "accessibility",
@@ -149,6 +163,7 @@ export const TOPICS: Topic[] = [
       "special needs", "ada", "handicap", "assistance"
     ],
     amenityKeys: ["accessibility", "elevator"],
+    ratingKeys: [],
   },
   {
     id: "eco_sustainability",
@@ -159,6 +174,7 @@ export const TOPICS: Topic[] = [
       "renewable", "plastic-free", "compost", "local produce"
     ],
     amenityKeys: ["ecofriendliness"],
+    ratingKeys: ["ecofriendliness"],
   },
 ];
 

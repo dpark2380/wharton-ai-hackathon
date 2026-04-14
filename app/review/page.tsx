@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadProperties, loadReviews } from "@/lib/data";
 import { analyzeProperty } from "@/lib/analysis";
 import { MapPin, Star, ArrowRight, Sparkles } from "lucide-react";
+import { generateHotelDisplayName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,7 @@ export default function ReviewLandingPage() {
     const pr = reviews.filter((r) => r.eg_property_id === p.eg_property_id);
     const analysis = analyzeProperty(p, pr);
     const location = [p.city, p.province, p.country].filter(Boolean).join(", ");
-    const shortName = p.property_description
-      .replace(/\|MASK\|/g, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 55);
+    const shortName = generateHotelDisplayName(p.property_description, p.city, p.country, p.star_rating);
     return {
       id: p.eg_property_id,
       name: shortName,

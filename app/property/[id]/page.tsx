@@ -49,7 +49,7 @@ export default async function PropertyDetailPage({ params }: Props) {
   const healthColor = getKnowledgeHealthColor(analysis.knowledgeHealthScore);
   const healthLabel = getKnowledgeHealthLabel(analysis.knowledgeHealthScore);
 
-  // Ratings for analytics — pass only what RatingAnalytics needs (no text)
+  // Ratings for analytics - pass only what RatingAnalytics needs (no text)
   const ratingsData = reviews.map((r) => ({
     rating: r.rating,
     acquisition_date: r.acquisition_date,
@@ -58,14 +58,14 @@ export default async function PropertyDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen" style={{ background: "#faf8f5" }}>
       {/* Header */}
-      <header style={{ background: "#1a1a2e" }} className="sticky top-0 z-50">
+      <header style={{ background: "#1E243A" }} className="sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-              style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}>E</div>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
+              style={{ background: "#FEBF4F", color: "#1E243A" }}>E</div>
             <div>
               <span className="text-white font-bold text-sm">Ask What Matters</span>
-              <span className="text-gray-500 text-xs block">Hotel Manager View</span>
+              <span className="text-gray-400 text-xs block">Hotel Manager View</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -77,7 +77,7 @@ export default async function PropertyDetailPage({ params }: Props) {
               <PenLine className="w-3.5 h-3.5" />
               Traveler Review Flow
             </Link>
-            <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+            <Link href="/portfolio" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
               <ArrowLeft className="w-4 h-4" />
               Portfolio
             </Link>
@@ -156,7 +156,7 @@ export default async function PropertyDetailPage({ params }: Props) {
       )}
 
       <main className="max-w-7xl mx-auto px-6 py-6">
-        <Tabs defaultValue="ratings">
+        <Tabs defaultValue="coverage">
           <TabsList className="mb-6 bg-white border border-[#e5e0d8] p-1 rounded-xl">
             <TabsTrigger value="ratings" className="rounded-lg gap-2 data-[state=active]:bg-[#1a1a2e] data-[state=active]:text-white px-4">
               <BarChart3 className="w-4 h-4" /> Ratings & Trends
@@ -188,17 +188,29 @@ export default async function PropertyDetailPage({ params }: Props) {
                     {analysis.topGaps.length === 0 ? (
                       <p className="text-sm text-green-600">No critical gaps!</p>
                     ) : (
-                      analysis.topGaps.map((gap) => (
-                        <div key={gap.topicId} className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ background: gap.gap === "high" ? "#ef4444" : gap.gap === "medium" ? "#f59e0b" : "#3b82f6" }} />
-                          <span className="text-sm text-gray-700 flex-1">{gap.topicLabel}</span>
-                          <Badge variant="outline" className="text-xs"
-                            style={{ borderColor: gap.gap === "high" ? "#fecaca" : "#fde68a", color: gap.gap === "high" ? "#ef4444" : "#f59e0b" }}>
-                            {gap.gap}
-                          </Badge>
-                        </div>
-                      ))
+                      analysis.topGaps.map((gap) => {
+                        const tier =
+                          gap.reviewCount === 0 ? "critical"
+                          : gap.freshnessDays !== null && gap.freshnessDays > 365 ? "urgent"
+                          : gap.freshnessDays !== null && gap.freshnessDays > 180 ? "monitor"
+                          : "low";
+                        const dot =
+                          tier === "critical" ? "🔴"
+                          : tier === "urgent" ? "🟠"
+                          : tier === "monitor" ? "🟡"
+                          : "🔵";
+                        const timeLabel =
+                          gap.reviewCount === 0 ? "Never reviewed"
+                          : gap.freshnessDays !== null ? `${Math.round(gap.freshnessDays / 30)}mo old`
+                          : "Sparse";
+                        return (
+                          <div key={gap.topicId} className="flex items-center gap-2">
+                            <span className="text-sm flex-shrink-0">{dot}</span>
+                            <span className="text-sm text-gray-700 flex-1">{gap.topicLabel}</span>
+                            <span className="text-xs text-gray-400">{timeLabel}</span>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -214,7 +226,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                       {analysis.topics.filter((t) => t.isStale).map((t) => (
                         <div key={t.topicId} className="text-sm text-gray-600">
                           <span className="font-medium">{t.topicLabel}</span>
-                          <span className="text-gray-400"> — {t.freshnessDays}d since last mention</span>
+                          <span className="text-gray-400">, {t.freshnessDays}d since last mention</span>
                         </div>
                       ))}
                     </div>
@@ -230,7 +242,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                     </h3>
                     {analysis.topics.filter((t) => t.hasSentimentShift).map((t) => (
                       <p key={t.topicId} className="text-sm text-red-600">
-                        <span className="font-medium">{t.topicLabel}</span> — recent reviews trending more negatively.
+                        <span className="font-medium">{t.topicLabel}</span>: recent reviews trending more negatively.
                       </p>
                     ))}
                   </div>
