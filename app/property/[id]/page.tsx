@@ -17,6 +17,7 @@ import {
 import ManagerNotifications from "@/components/ManagerNotifications";
 import PropertyInsights from "@/components/PropertyInsights";
 import MLAnalysis from "@/components/MLAnalysis";
+import { getLearnedWeights, learnPropertyWeights } from "@/lib/ml/continuous-learning";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,9 @@ export default async function PropertyDetailPage({ params }: Props) {
   if (!property) notFound();
 
   const reviews = getReviewsForProperty(id);
-  const analysis = analyzeProperty(property, reviews);
+  // Auto-train on first visit if no weights exist; subsequent visits use cached weights
+  const learnedWeights = getLearnedWeights(id) ?? learnPropertyWeights(id, reviews);
+  const analysis = analyzeProperty(property, reviews, false, learnedWeights);
 
   const propertyName = generateHotelDisplayName(
     property.property_description,
@@ -421,6 +424,7 @@ export default async function PropertyDetailPage({ params }: Props) {
               </div>
               <MLAnalysis propertyId={id} />
             </div>
+
           </TabsContent>
 
           {/* ── Tab B: Topic Coverage ───────────────────────────────────────── */}

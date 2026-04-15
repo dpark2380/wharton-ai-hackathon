@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { Property, Review, parseReviewDate } from "./data";
 import { TOPICS, Topic, classifyText } from "./topics";
+import type { LearnedWeights } from "./ml/continuous-learning";
+import { liveClassificationCache } from "./live-classification-cache";
 
 // ── AI topic classification cache ─────────────────────────────────────────────
 // Populated by scripts/classify-topics-ai.ts. Falls back to keyword matching
@@ -25,14 +27,29 @@ function hashText(text: string): string {
   return crypto.createHash("sha256").update(text.trim()).digest("hex").slice(0, 16);
 }
 
-/** Returns the set of topic IDs for a review — AI cache first, keyword fallback. */
+/**
+ * Returns the set of topic IDs for a review.
+ * Priority: AI file cache → embedding live cache → keyword matching (last resort).
+ * Live reviews are classified with embeddings at submission time and stored in
+ * liveClassificationCache, so keyword matching is only reached if the embedding
+ * API failed during submission.
+ */
 function classifyReview(reviewText: string): Set<string> {
-  const classifications = getAiClassifications();
   const hash = hashText(reviewText);
+
+  // 1. AI GPT file cache (all historical reviews)
+  const classifications = getAiClassifications();
   if (classifications[hash]) {
     return new Set(classifications[hash]);
   }
-  return classifyText(reviewText); // fallback for uncached reviews
+
+  // 2. Embedding-classified live reviews (cached at submission time)
+  if (liveClassificationCache.has(hash)) {
+    return new Set(liveClassificationCache.get(hash)!);
+  }
+
+  // 3. Keyword matching — only reached if embedding API failed at submission
+  return classifyText(reviewText);
 }
 
 export interface TopicAnalysis {
@@ -194,8 +211,13 @@ export function invalidateAnalysisCache(propertyId: string): void {
   _analysisCache.delete(propertyId);
 }
 
-export function analyzeProperty(property: Property, reviews: Review[], skipCache = false): PropertyAnalysis {
-  if (!skipCache) {
+export function analyzeProperty(
+  property: Property,
+  reviews: Review[],
+  skipCache = false,
+  learnedWeights: LearnedWeights | null = null
+): PropertyAnalysis {
+  if (!skipCache && !learnedWeights) {
     const cached = _analysisCache.get(property.eg_property_id);
     if (cached) return cached;
   }
@@ -239,17 +261,25 @@ export function analyzeProperty(property: Property, reviews: Review[], skipCache
     const textSentimentScore = detectTextSentimentScore(mentioningReviews);
 
     // Blend: structured ratings enrich text sentiment, but only when text coverage exists.
-    // Zero text coverage = still a knowledge gap regardless of sub-ratings.
+    // Use learned sentiment blend weights if available, otherwise fall back to defaults.
+    const learnedBlend = learnedWeights?.sentimentBlend.find((b) => b.topicId === topic.id);
+    const s1Weight = learnedBlend?.hasStructuredData ? learnedBlend.structuredWeight : 0.55;
+    const s2Weight = learnedBlend?.hasStructuredData ? learnedBlend.textWeight : 0.45;
+
     const hybridSentimentScore = reviewCount > 0 && structuredRatingScore !== null
-      ? structuredRatingScore * 0.55 + textSentimentScore * 0.45
+      ? structuredRatingScore * s1Weight + textSentimentScore * s2Weight
       : reviewCount > 0
       ? textSentimentScore
       : 0.5; // neutral - no text data to draw from
 
+    const wCoverage  = learnedWeights?.topicScoreWeights?.coverageWeight  ?? 0.35;
+    const wFreshness = learnedWeights?.topicScoreWeights?.freshnessWeight ?? 0.35;
+    const wSentiment = learnedWeights?.topicScoreWeights?.sentimentWeight ?? 0.30;
+
     const topicScore = isRelevant
       ? reviewCount === 0
         ? 0 // no text mentions = no knowledge = zero contribution
-        : coverageScore * 0.35 + freshnessScore * 0.35 + hybridSentimentScore * 0.30
+        : coverageScore * wCoverage + freshnessScore * wFreshness + hybridSentimentScore * wSentiment
       : 1; // non-relevant topics don't drag the score
 
     const isStale = isRelevant && freshnessDays !== null && freshnessDays > STALE_THRESHOLD_DAYS;
@@ -284,9 +314,27 @@ export function analyzeProperty(property: Property, reviews: Review[], skipCache
   });
 
   const relevantTopics = topics.filter((t) => t.isRelevant);
-  const knowledgeHealthScore = relevantTopics.length > 0
-    ? Math.round((relevantTopics.reduce((sum, t) => sum + t.topicScore, 0) / relevantTopics.length) * 100)
-    : 0;
+
+  // Use learned importance weights if available, otherwise equal weight (simple mean)
+  let knowledgeHealthScore = 0;
+  if (relevantTopics.length > 0) {
+    if (learnedWeights) {
+      const totalImportance = relevantTopics.reduce((sum, t) => {
+        const imp = learnedWeights.topicImportance.find((i) => i.topicId === t.topicId);
+        return sum + (imp?.weight ?? 1 / TOPICS.length);
+      }, 0);
+      const weightedSum = relevantTopics.reduce((sum, t) => {
+        const imp = learnedWeights.topicImportance.find((i) => i.topicId === t.topicId);
+        const w = imp?.weight ?? 1 / TOPICS.length;
+        return sum + w * t.topicScore;
+      }, 0);
+      knowledgeHealthScore = Math.round((weightedSum / totalImportance) * 100);
+    } else {
+      knowledgeHealthScore = Math.round(
+        (relevantTopics.reduce((sum, t) => sum + t.topicScore, 0) / relevantTopics.length) * 100
+      );
+    }
+  }
 
   const topGaps = topics
     .filter((t) => t.isRelevant && t.gap !== "none")

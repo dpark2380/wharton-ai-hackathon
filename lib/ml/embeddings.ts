@@ -1,16 +1,25 @@
 /**
  * lib/ml/embeddings.ts
  *
- * OpenAI text-embedding-3-small wrapper with:
- *  - Batch support (up to 100 texts per API call)
- *  - globalThis cache keyed by text hash so embeddings survive HMR
- *  - Cosine similarity helper
+ * Local embedding model using @xenova/transformers (all-MiniLM-L6-v2).
+ * Runs entirely in-process — no API calls, no per-request cost, no network dependency.
+ *
+ * Model: sentence-transformers/all-MiniLM-L6-v2
+ *   - 384-dimensional embeddings
+ *   - ~90MB download, cached to node_modules/.cache/huggingface after first run
+ *   - Sufficient quality for 15-topic classification via cosine similarity
+ *
+ * Interface is identical to the previous OpenAI wrapper so all callers
+ * (topic-classifier.ts) work unchanged.
  */
 
 import crypto from "crypto";
-import OpenAI from "openai";
+
+// ── Model loader ───────────────────────────────────────────────────────────────
 
 declare global {
+  // eslint-disable-next-line no-var
+  var _localEmbedder: unknown | undefined;
   // eslint-disable-next-line no-var
   var _embeddingCache: Map<string, number[]> | undefined;
 }
@@ -18,49 +27,75 @@ declare global {
 const embeddingCache: Map<string, number[]> =
   globalThis._embeddingCache ?? (globalThis._embeddingCache = new Map());
 
-let _client: OpenAI | null = null;
-function getClient(): OpenAI {
-  if (!_client) _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return _client;
+let _pipelinePromise: Promise<unknown> | null = null;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getEmbedder(): Promise<any> {
+  if (globalThis._localEmbedder) return globalThis._localEmbedder;
+
+  if (!_pipelinePromise) {
+    _pipelinePromise = (async () => {
+      // Dynamic import so Next.js doesn't try to bundle the ONNX runtime at build time
+      const { pipeline } = await import("@xenova/transformers");
+      const embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
+        progress_callback: process.env.NODE_ENV === "development"
+          ? (p: unknown) => {
+              const progress = p as { status?: string; file?: string; progress?: number };
+              if (progress.status === "downloading") {
+                process.stdout.write(`\r[embedder] downloading ${progress.file ?? ""} ${Math.round(progress.progress ?? 0)}%`);
+              }
+            }
+          : undefined,
+      });
+      globalThis._localEmbedder = embedder;
+      return embedder;
+    })();
+  }
+
+  return _pipelinePromise;
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function hashText(text: string): string {
   return crypto.createHash("sha256").update(text.trim()).digest("hex").slice(0, 24);
 }
 
+// ── Public API (same shape as the previous OpenAI wrapper) ─────────────────────
+
 /**
- * Embed multiple texts in a single API call.
- * Texts already in cache are returned without a network request.
- * Remaining texts are sent in one batch.
+ * Embed multiple texts using the local model.
+ * Texts already in cache are returned immediately without model inference.
  */
 export async function getEmbeddings(texts: string[]): Promise<number[][]> {
   const results: (number[] | null)[] = new Array(texts.length).fill(null);
-  const toFetch: { index: number; text: string }[] = [];
+  const toEmbed: { index: number; text: string }[] = [];
 
   for (let i = 0; i < texts.length; i++) {
     const key = hashText(texts[i]);
     if (embeddingCache.has(key)) {
       results[i] = embeddingCache.get(key)!;
     } else {
-      toFetch.push({ index: i, text: texts[i] });
+      toEmbed.push({ index: i, text: texts[i] });
     }
   }
 
-  if (toFetch.length > 0) {
-    // OpenAI allows up to 2048 inputs; we chunk at 100 for safety
-    const CHUNK = 100;
-    for (let c = 0; c < toFetch.length; c += CHUNK) {
-      const chunk = toFetch.slice(c, c + CHUNK);
-      const response = await getClient().embeddings.create({
-        model: "text-embedding-3-small",
-        input: chunk.map((t) => t.text.slice(0, 8000)),
-      });
-      for (let j = 0; j < chunk.length; j++) {
-        const embedding = response.data[j].embedding;
-        const key = hashText(chunk[j].text);
-        embeddingCache.set(key, embedding);
-        results[chunk[j].index] = embedding;
-      }
+  if (toEmbed.length > 0) {
+    const embedder = await getEmbedder();
+
+    for (const { index, text } of toEmbed) {
+      // @xenova/transformers returns { data: Float32Array, dims: number[] }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const output = await (embedder as any)(
+        text.slice(0, 512), // MiniLM max context
+        { pooling: "mean", normalize: true }
+      ) as { data: Float32Array; dims: number[] };
+
+      // output.data is already mean-pooled and normalized when pooling:"mean" is set
+      const vec = Array.from(output.data) as number[];
+      const key = hashText(text);
+      embeddingCache.set(key, vec);
+      results[index] = vec;
     }
   }
 
@@ -74,7 +109,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
 /**
  * Cosine similarity between two vectors — range [-1, 1].
- * For unit-normalised embeddings from text-embedding-3-small this is essentially dot product.
+ * For normalized embeddings this is equivalent to dot product.
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0, magA = 0, magB = 0;

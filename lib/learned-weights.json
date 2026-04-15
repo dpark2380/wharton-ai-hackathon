@@ -1,0 +1,592 @@
+{
+  "5f5a0cd8662f0ddf297f2d27358f680daab5d3ac22fd45a4e1c3c3ec2c101a12": {
+    "propertyId": "5f5a0cd8662f0ddf297f2d27358f680daab5d3ac22fd45a4e1c3c3ec2c101a12",
+    "topicImportance": [
+      {
+        "topicId": "cleanliness",
+        "topicLabel": "Cleanliness",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 1,
+        "correlation": 0
+      },
+      {
+        "topicId": "location",
+        "topicLabel": "Location & Neighborhood",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 3,
+        "correlation": 0
+      },
+      {
+        "topicId": "food_breakfast",
+        "topicLabel": "Food & Breakfast",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 3,
+        "correlation": 0
+      },
+      {
+        "topicId": "wifi_internet",
+        "topicLabel": "WiFi & Internet",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "parking",
+        "topicLabel": "Parking",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "pool_fitness",
+        "topicLabel": "Pool & Fitness",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "checkin_checkout",
+        "topicLabel": "Check-in & Check-out",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "noise",
+        "topicLabel": "Noise & Quiet",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "room_comfort",
+        "topicLabel": "Room Size & Comfort",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 2,
+        "correlation": 0
+      },
+      {
+        "topicId": "bathroom",
+        "topicLabel": "Bathroom",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "staff_service",
+        "topicLabel": "Staff & Service",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 6,
+        "correlation": 0
+      },
+      {
+        "topicId": "value",
+        "topicLabel": "Value for Money",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 1,
+        "correlation": 0
+      },
+      {
+        "topicId": "spa_wellness",
+        "topicLabel": "Spa & Wellness",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "accessibility",
+        "topicLabel": "Accessibility",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "eco_sustainability",
+        "topicLabel": "Eco & Sustainability",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      }
+    ],
+    "sentimentBlend": [
+      {
+        "topicId": "cleanliness",
+        "topicLabel": "Cleanliness",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 1,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "location",
+        "topicLabel": "Location & Neighborhood",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "food_breakfast",
+        "topicLabel": "Food & Breakfast",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "wifi_internet",
+        "topicLabel": "WiFi & Internet",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "parking",
+        "topicLabel": "Parking",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "pool_fitness",
+        "topicLabel": "Pool & Fitness",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "checkin_checkout",
+        "topicLabel": "Check-in & Check-out",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "noise",
+        "topicLabel": "Noise & Quiet",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "room_comfort",
+        "topicLabel": "Room Size & Comfort",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 2,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "bathroom",
+        "topicLabel": "Bathroom",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "staff_service",
+        "topicLabel": "Staff & Service",
+        "structuredWeight": 0.62,
+        "textWeight": 0.38,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0.07,
+        "reviewCount": 5,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "value",
+        "topicLabel": "Value for Money",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "spa_wellness",
+        "topicLabel": "Spa & Wellness",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "accessibility",
+        "topicLabel": "Accessibility",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "eco_sustainability",
+        "topicLabel": "Eco & Sustainability",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      }
+    ],
+    "reviewsUsed": 6,
+    "trainedAt": "2026-04-15T05:37:40.640Z",
+    "previousTrainedAt": null
+  },
+  "ff26cdda236b233f7c481f0e896814075ac6bed335e162e0ff01d5491343f838": {
+    "propertyId": "ff26cdda236b233f7c481f0e896814075ac6bed335e162e0ff01d5491343f838",
+    "topicImportance": [
+      {
+        "topicId": "cleanliness",
+        "topicLabel": "Cleanliness",
+        "weight": 0.0752,
+        "defaultWeight": 0.0667,
+        "delta": 0.0085,
+        "reviewCount": 252,
+        "correlation": 0.55
+      },
+      {
+        "topicId": "location",
+        "topicLabel": "Location & Neighborhood",
+        "weight": 0.0448,
+        "defaultWeight": 0.0667,
+        "delta": -0.0219,
+        "reviewCount": 140,
+        "correlation": 0.3
+      },
+      {
+        "topicId": "food_breakfast",
+        "topicLabel": "Food & Breakfast",
+        "weight": 0.0783,
+        "defaultWeight": 0.0667,
+        "delta": 0.0117,
+        "reviewCount": 109,
+        "correlation": 0.59
+      },
+      {
+        "topicId": "wifi_internet",
+        "topicLabel": "WiFi & Internet",
+        "weight": 0.0606,
+        "defaultWeight": 0.0667,
+        "delta": -0.0061,
+        "reviewCount": 2,
+        "correlation": 0
+      },
+      {
+        "topicId": "parking",
+        "topicLabel": "Parking",
+        "weight": 0.0593,
+        "defaultWeight": 0.0667,
+        "delta": -0.0074,
+        "reviewCount": 12,
+        "correlation": 0.34
+      },
+      {
+        "topicId": "pool_fitness",
+        "topicLabel": "Pool & Fitness",
+        "weight": 0.0838,
+        "defaultWeight": 0.0667,
+        "delta": 0.0172,
+        "reviewCount": 24,
+        "correlation": 0.71
+      },
+      {
+        "topicId": "checkin_checkout",
+        "topicLabel": "Check-in & Check-out",
+        "weight": 0.0634,
+        "defaultWeight": 0.0667,
+        "delta": -0.0032,
+        "reviewCount": 46,
+        "correlation": 0.45
+      },
+      {
+        "topicId": "noise",
+        "topicLabel": "Noise & Quiet",
+        "weight": 0.0907,
+        "defaultWeight": 0.0667,
+        "delta": 0.0241,
+        "reviewCount": 22,
+        "correlation": 0.82
+      },
+      {
+        "topicId": "room_comfort",
+        "topicLabel": "Room Size & Comfort",
+        "weight": 0.089,
+        "defaultWeight": 0.0667,
+        "delta": 0.0223,
+        "reviewCount": 111,
+        "correlation": 0.68
+      },
+      {
+        "topicId": "bathroom",
+        "topicLabel": "Bathroom",
+        "weight": 0.0743,
+        "defaultWeight": 0.0667,
+        "delta": 0.0076,
+        "reviewCount": 35,
+        "correlation": 0.57
+      },
+      {
+        "topicId": "staff_service",
+        "topicLabel": "Staff & Service",
+        "weight": 0.0744,
+        "defaultWeight": 0.0667,
+        "delta": 0.0077,
+        "reviewCount": 302,
+        "correlation": 0.54
+      },
+      {
+        "topicId": "value",
+        "topicLabel": "Value for Money",
+        "weight": 0.0871,
+        "defaultWeight": 0.0667,
+        "delta": 0.0204,
+        "reviewCount": 36,
+        "correlation": 0.72
+      },
+      {
+        "topicId": "spa_wellness",
+        "topicLabel": "Spa & Wellness",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      },
+      {
+        "topicId": "accessibility",
+        "topicLabel": "Accessibility",
+        "weight": 0.083,
+        "defaultWeight": 0.0667,
+        "delta": 0.0163,
+        "reviewCount": 6,
+        "correlation": 1
+      },
+      {
+        "topicId": "eco_sustainability",
+        "topicLabel": "Eco & Sustainability",
+        "weight": 0.0667,
+        "defaultWeight": 0.0667,
+        "delta": 0,
+        "reviewCount": 0,
+        "correlation": 0
+      }
+    ],
+    "sentimentBlend": [
+      {
+        "topicId": "cleanliness",
+        "topicLabel": "Cleanliness",
+        "structuredWeight": 0.83,
+        "textWeight": 0.17,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0.28,
+        "reviewCount": 246,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "location",
+        "topicLabel": "Location & Neighborhood",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "food_breakfast",
+        "topicLabel": "Food & Breakfast",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "wifi_internet",
+        "topicLabel": "WiFi & Internet",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "parking",
+        "topicLabel": "Parking",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "pool_fitness",
+        "topicLabel": "Pool & Fitness",
+        "structuredWeight": 0.6,
+        "textWeight": 0.4,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0.05,
+        "reviewCount": 19,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "checkin_checkout",
+        "topicLabel": "Check-in & Check-out",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "noise",
+        "topicLabel": "Noise & Quiet",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "room_comfort",
+        "topicLabel": "Room Size & Comfort",
+        "structuredWeight": 0.57,
+        "textWeight": 0.43,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0.02,
+        "reviewCount": 95,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "bathroom",
+        "topicLabel": "Bathroom",
+        "structuredWeight": 0.48,
+        "textWeight": 0.52,
+        "defaultStructuredWeight": 0.55,
+        "delta": -0.07,
+        "reviewCount": 33,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "staff_service",
+        "topicLabel": "Staff & Service",
+        "structuredWeight": 0.84,
+        "textWeight": 0.16,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0.29,
+        "reviewCount": 281,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "value",
+        "topicLabel": "Value for Money",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      },
+      {
+        "topicId": "spa_wellness",
+        "topicLabel": "Spa & Wellness",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "accessibility",
+        "topicLabel": "Accessibility",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": false
+      },
+      {
+        "topicId": "eco_sustainability",
+        "topicLabel": "Eco & Sustainability",
+        "structuredWeight": 0.55,
+        "textWeight": 0.45,
+        "defaultStructuredWeight": 0.55,
+        "delta": 0,
+        "reviewCount": 0,
+        "hasStructuredData": true
+      }
+    ],
+    "reviewsUsed": 717,
+    "trainedAt": "2026-04-15T05:38:22.416Z",
+    "previousTrainedAt": null
+  }
+}

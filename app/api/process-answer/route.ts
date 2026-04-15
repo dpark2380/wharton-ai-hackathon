@@ -6,7 +6,9 @@ import { reviewStore, LiveReview, LiveAnswer, LivePhoto } from "@/lib/store";
 import { generateHotelDisplayName } from "@/lib/utils";
 import { invalidateInsightsCache } from "@/lib/insights-cache";
 import { invalidateMLCache } from "@/lib/ml/analyze-ml";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
+import { classifyTextML } from "@/lib/ml/topic-classifier";
+import { liveClassificationCache } from "@/lib/live-classification-cache";
 
 interface AnswerPayload {
   topicId: string;
@@ -73,6 +75,18 @@ export async function POST(request: Request) {
     };
 
     reviewStore.addReview(liveReview);
+
+    // ── Classify review text with embeddings (fire-and-forget) ───────────────
+    // Populates liveClassificationCache so classifyReview() in analysis.ts
+    // uses embeddings instead of keyword fallback on the next analysis pass.
+    if (reviewText?.trim()) {
+      const hash = createHash("sha256").update(reviewText.trim()).digest("hex").slice(0, 16);
+      classifyTextML(reviewText)
+        .then((results) => {
+          liveClassificationCache.set(hash, results.map((r) => r.topicId));
+        })
+        .catch((err) => console.error("Embedding classification failed:", err));
+    }
 
     // ── Invalidate caches so next request picks up the new review ────────────
     invalidateAnalysisCache(propertyId);
