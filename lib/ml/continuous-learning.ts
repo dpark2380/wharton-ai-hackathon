@@ -25,6 +25,7 @@
 import { Review, parseReviewDate } from "@/lib/data";
 import { TOPICS, classifyText } from "@/lib/topics";
 import { liveClassificationCache } from "@/lib/live-classification-cache";
+import { checkTextQuality } from "@/lib/quality";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -71,6 +72,9 @@ export interface LearnedWeights {
   topicImportance: TopicImportance[];
   sentimentBlend: SentimentBlend[];
   topicScoreWeights: TopicScoreWeights;
+  // Coverage model — learned from data rather than hardcoded
+  saturationThreshold: number;   // effective review count at which coverage saturates (default 10)
+  reviewAlignmentWeight: number; // α: how much to weight text–rating alignment vs heuristic quality (default 0.6)
   reviewsUsed: number;
   trainedAt: string;
   previousTrainedAt: string | null;
@@ -227,6 +231,140 @@ function olsBlend(s1s: number[], s2s: number[], ys: number[]): number {
 function shrink(learned: number, prior: number, n: number): number {
   const trust = n / (n + PRIOR_STRENGTH);
   return trust * learned + (1 - trust) * prior;
+}
+
+// ── Coverage saturation threshold learning ────────────────────────────────────
+//
+// For each topic with enough reviews, we simulate adding them one by one in
+// chronological order and track the running mean sentiment. We find the first
+// k where the last STABILITY_WINDOW consecutive additions each changed the mean
+// by less than STABILITY_EPSILON — this is the stabilisation point for that
+// topic. The median across all topics is the learned saturation threshold.
+//
+// Intuition: a high-volume hotel stabilises faster (lower threshold); a boutique
+// with noisy, inconsistent reviews needs more data before the mean settles.
+
+const DEFAULT_SATURATION    = 10;
+const STABILITY_EPSILON     = 0.03; // change in running mean < this → stable
+const STABILITY_WINDOW      = 3;    // must hold for this many consecutive additions
+const MIN_REVIEWS_THRESHOLD = 8;    // need at least this many to detect stabilisation
+
+function learnSaturationThreshold(
+  processed: Array<{ review: Review; topics: Set<string>; textSentiment: number }>
+): number {
+  const stabilisationPoints: number[] = [];
+
+  for (const topic of TOPICS) {
+    const mentioning = processed.filter((p) => p.topics.has(topic.id));
+    if (mentioning.length < MIN_REVIEWS_THRESHOLD) continue;
+
+    // Chronological order — simulate a manager watching reviews accumulate
+    const sorted = [...mentioning].sort(
+      (a, b) =>
+        parseReviewDate(a.review.acquisition_date).getTime() -
+        parseReviewDate(b.review.acquisition_date).getTime()
+    );
+
+    // Running means
+    let runningSum = 0;
+    const runningMeans: number[] = [];
+    for (const p of sorted) {
+      runningSum += p.textSentiment;
+      runningMeans.push(runningSum / runningMeans.length + 1);
+    }
+
+    // Find first k where the last STABILITY_WINDOW deltas are all < EPSILON
+    let stabilisedAt = sorted.length; // default: never stabilised within the window
+    for (let k = STABILITY_WINDOW; k < runningMeans.length; k++) {
+      let stable = true;
+      for (let w = 1; w <= STABILITY_WINDOW; w++) {
+        if (Math.abs(runningMeans[k - w + 1] - runningMeans[k - w]) >= STABILITY_EPSILON) {
+          stable = false;
+          break;
+        }
+      }
+      if (stable) { stabilisedAt = k + 1; break; } // 1-indexed count
+    }
+
+    stabilisationPoints.push(stabilisedAt);
+  }
+
+  if (stabilisationPoints.length === 0) return DEFAULT_SATURATION;
+
+  // Median stabilisation point across topics
+  const sortedPts = [...stabilisationPoints].sort((a, b) => a - b);
+  const median = sortedPts[Math.floor(sortedPts.length / 2)];
+
+  // Bayesian shrinkage toward default (10)
+  // Use topic count × 2 as pseudo-observations (more topics = more confident)
+  const n = stabilisationPoints.length * 2;
+  const learned = shrink(median, DEFAULT_SATURATION, n);
+
+  return Math.round(Math.max(3, Math.min(30, learned)));
+}
+
+// ── Review alignment weight learning ─────────────────────────────────────────
+//
+// For reviews that cover topics with structured sub-ratings (e.g. roomcleanliness
+// for Cleanliness), we can measure how well the text sentiment agrees with the
+// star rating: alignment = 1 − |textSentiment − structuredRating|.
+//
+// We also have a heuristic quality score from checkTextQuality (based on
+// lexical diversity, length, etc.). We use 1D OLS to find the weight α such
+// that α×alignment + (1−α)×heuristic best predicts rating.overall/5.
+//
+// α > 0.5: alignment is a stronger signal than the heuristic
+// α < 0.5: heuristic is more reliable (e.g. noisy structured ratings)
+
+const DEFAULT_ALIGNMENT_WEIGHT = 0.6; // lean toward alignment when data is thin
+const MIN_TRIPLES_FOR_LEARNING = 10;
+
+function learnReviewAlignmentWeight(
+  processed: Array<{ review: Review; topics: Set<string>; textSentiment: number; overallNorm: number }>
+): number {
+  const triples: { alignment: number; heuristic: number; y: number }[] = [];
+
+  for (const topic of TOPICS) {
+    if (topic.ratingKeys.length === 0) continue; // no structured ratings for this topic
+
+    const mentioning = processed.filter((p) => p.topics.has(topic.id));
+
+    for (const p of mentioning) {
+      const r = p.review.rating as Record<string, number>;
+      const vals = topic.ratingKeys.map((k) => r[k]).filter((v) => v && v > 0);
+      if (vals.length === 0) continue;
+
+      // S1: normalised structured sub-rating for this topic
+      const structuredRating = vals.reduce((s, v) => s + v, 0) / vals.length / 5;
+
+      // Alignment: how well does the text match the star rating?
+      // High alignment (close to 1) = review text and rating agree → informative
+      const alignment = 1 - Math.abs(p.textSentiment - structuredRating);
+
+      // Heuristic: lexical quality of the review text
+      const { score: heuristic } = checkTextQuality(p.review.review_text);
+
+      triples.push({ alignment, heuristic, y: p.overallNorm });
+    }
+  }
+
+  if (triples.length < MIN_TRIPLES_FOR_LEARNING) return DEFAULT_ALIGNMENT_WEIGHT;
+
+  // 1D OLS: y ≈ h + α(a − h)
+  // d/dα = 0  →  α* = Σ((y − h)(a − h)) / Σ((a − h)²)
+  let num = 0, den = 0;
+  for (const { alignment: a, heuristic: h, y } of triples) {
+    const diff = a - h;
+    num += (y - h) * diff;
+    den += diff * diff;
+  }
+
+  if (Math.abs(den) < 1e-8) return DEFAULT_ALIGNMENT_WEIGHT;
+  const learned = Math.max(0, Math.min(1, num / den));
+
+  // Shrink toward default — need many reviews before trusting alignment over heuristic
+  const alpha = shrink(learned, DEFAULT_ALIGNMENT_WEIGHT, triples.length);
+  return Math.round(alpha * 100) / 100;
 }
 
 // ── Topic score weight learning ───────────────────────────────────────────────
@@ -460,6 +598,18 @@ export function learnPropertyWeights(
 
   const topicScoreWeights = learnTopicScoreWeights(processed);
 
+  // ── 4. Coverage saturation threshold ─────────────────────────────────────
+  // How many quality-weighted reviews are needed before a topic is "saturated"?
+  // Learned from when running mean sentiment stabilises across topics.
+
+  const saturationThreshold = learnSaturationThreshold(processed);
+
+  // ── 5. Review alignment weight ────────────────────────────────────────────
+  // How much to weight text–rating alignment vs heuristic quality score?
+  // Learned by OLS from reviews with both text and structured sub-ratings.
+
+  const reviewAlignmentWeight = learnReviewAlignmentWeight(processed);
+
   // ── Persist ───────────────────────────────────────────────────────────────
 
   const result: LearnedWeights = {
@@ -467,6 +617,8 @@ export function learnPropertyWeights(
     topicImportance,
     sentimentBlend,
     topicScoreWeights,
+    saturationThreshold,
+    reviewAlignmentWeight,
     reviewsUsed: withText.length,
     trainedAt: new Date().toISOString(),
     previousTrainedAt: prev?.trainedAt ?? null,

@@ -6,6 +6,7 @@ import { TOPICS, Topic, classifyText } from "./topics";
 import type { LearnedWeights } from "./ml/continuous-learning";
 import { liveClassificationCache } from "./live-classification-cache";
 import { getAbsaScore } from "./ml/absa-cache";
+import { checkTextQuality } from "./quality";
 
 // ── AI topic classification cache ─────────────────────────────────────────────
 // Populated by scripts/classify-topics-ai.ts. Falls back to keyword matching
@@ -57,8 +58,9 @@ export interface TopicAnalysis {
   topicId: string;
   topicLabel: string;
   isRelevant: boolean;
-  reviewCount: number;      // how many reviews mention this topic
-  coverageScore: number;    // 0-1
+  reviewCount: number;          // how many reviews mention this topic (raw count)
+  effectiveCoverageCount: number; // quality-weighted count (each review contributes 0–1)
+  coverageScore: number;    // 0-1, based on effectiveCoverageCount not raw reviewCount
   freshnessDays: number | null; // days since most recent mention (null = never mentioned)
   freshnessScore: number;   // 0-1
   sentiment: "positive" | "negative" | "mixed" | "unknown";
@@ -256,7 +258,48 @@ export function analyzeProperty(
     );
 
     const reviewCount = mentioningReviews.length;
-    const coverageScore = Math.min(1, reviewCount / 10);
+
+    // ── Quality-weighted effective count ──────────────────────────────────────
+    // Each review contributes a quality weight (0–1) rather than a flat 1.
+    //
+    // The weight blends two signals:
+    //   alignment = 1 − |textSentiment − structuredRating|  (when S1 available)
+    //             → high when what the guest wrote matches what they starred
+    //   heuristic = checkTextQuality score (lexical diversity, length, etc.)
+    //
+    // The blend ratio α (reviewAlignmentWeight) is learned per-property by OLS.
+    // When no structured rating exists for this topic, falls back to heuristic only.
+    //
+    // The saturation threshold (how many effective reviews = "full" coverage) is
+    // also learned per-property from when running mean sentiment stabilises.
+    const saturationThreshold = learnedWeights?.saturationThreshold ?? 10;
+    const alignmentWeight     = learnedWeights?.reviewAlignmentWeight ?? 0.6;
+
+    const effectiveCoverageCount = mentioningReviews.reduce((sum, r) => {
+      const { score: heuristic } = checkTextQuality(r.review_text);
+
+      // Compute alignment score when structured sub-ratings exist for this topic
+      const ratingRecord = r.rating as Record<string, number>;
+      const ratingVals = topic.ratingKeys
+        .map((k) => ratingRecord[k])
+        .filter((v) => v && v > 0);
+
+      if (ratingVals.length > 0) {
+        const structuredRating = ratingVals.reduce((s, v) => s + v, 0) / ratingVals.length / 5;
+        // Pure keyword-based text sentiment for the alignment comparison
+        const text = (r.review_text || "").toLowerCase();
+        let pos = 0, neg = 0;
+        for (const w of POS_WORDS) if (text.includes(w)) pos++;
+        for (const w of NEG_WORDS) if (text.includes(w)) neg++;
+        const textSent = (pos + neg) === 0 ? 0.5 : 0.1 + (pos / (pos + neg)) * 0.8;
+        const alignment = 1 - Math.abs(textSent - structuredRating);
+        return sum + alignmentWeight * alignment + (1 - alignmentWeight) * heuristic;
+      }
+
+      return sum + heuristic;
+    }, 0);
+
+    const coverageScore = Math.min(1, effectiveCoverageCount / saturationThreshold);
 
     let freshnessDays: number | null = null;
     let lastMentionDate: string | null = null;
@@ -311,10 +354,13 @@ export function analyzeProperty(
     const isStale = isRelevant && freshnessDays !== null && freshnessDays > STALE_THRESHOLD_DAYS;
 
     // Gap priority
+    // Gap threshold scales with the learned saturation point:
+    // "medium" = less than 20% of the way to saturation, or stale
+    const mediumGapThreshold = (learnedWeights?.saturationThreshold ?? 10) * 0.2;
     let gap: "high" | "medium" | "low" | "none" = "none";
     if (isRelevant) {
       if (reviewCount === 0) gap = "high";
-      else if (reviewCount < 3 || isStale) gap = "medium";
+      else if (effectiveCoverageCount < mediumGapThreshold || isStale) gap = "medium";
       else if (coverageScore < 0.5) gap = "low";
     }
 
@@ -323,6 +369,7 @@ export function analyzeProperty(
       topicLabel: topic.label,
       isRelevant,
       reviewCount,
+      effectiveCoverageCount,
       coverageScore,
       freshnessDays,
       freshnessScore,

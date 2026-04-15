@@ -44,23 +44,25 @@ There is no external database. Property and review data come from static CSV fil
 
 Every review and every score is broken down across these topics:
 
-| ID | Label | Structured rating fields used |
-|---|---|---|
-| `cleanliness` | Cleanliness | roomcleanliness, hotelcondition |
-| `location` | Location & Neighborhood | location, convenienceoflocation, neighborhoodsatisfaction |
-| `food_breakfast` | Food & Breakfast | — |
-| `wifi_internet` | WiFi & Internet | — |
-| `parking` | Parking | — |
-| `pool_fitness` | Pool & Fitness | roomamenitiesscore |
-| `checkin_checkout` | Check-in & Check-out | checkin |
-| `noise` | Noise | — |
-| `room_comfort` | Room Comfort | roomcomfort, roomquality |
-| `bathroom` | Bathroom | — |
-| `staff_service` | Staff & Service | service, communication |
-| `value` | Value for Money | valueformoney |
-| `spa_wellness` | Spa & Wellness | — |
-| `accessibility` | Accessibility | — |
-| `eco_sustainability` | Eco-Sustainability | ecofriendliness |
+| ID | Label | S1 structured rating fields | S1 available? |
+|---|---|---|---|
+| `cleanliness` | Cleanliness | roomcleanliness, hotelcondition | Yes |
+| `location` | Location & Neighborhood | location, convenienceoflocation, neighborhoodsatisfaction | Yes |
+| `food_breakfast` | Food & Breakfast | — | **No** |
+| `wifi_internet` | WiFi & Internet | — | **No** |
+| `parking` | Parking | — | **No** |
+| `pool_fitness` | Pool & Fitness | roomamenitiesscore | Yes |
+| `checkin_checkout` | Check-in & Check-out | checkin, communication | Yes |
+| `noise` | Noise & Quiet | — | **No** |
+| `room_comfort` | Room Size & Comfort | roomcomfort, roomquality, roomamenitiesscore | Yes |
+| `bathroom` | Bathroom | roomcleanliness | Yes |
+| `staff_service` | Staff & Service | service, communication | Yes |
+| `value` | Value for Money | valueformoney | Yes |
+| `spa_wellness` | Spa & Wellness | — | **No** |
+| `accessibility` | Accessibility | — | **No** |
+| `eco_sustainability` | Eco & Sustainability | ecofriendliness | Yes |
+
+**9 of 15 topics** have Expedia structured sub-ratings (S1). **6 topics** — food_breakfast, wifi_internet, parking, noise, spa_wellness, and accessibility — have no structured rating fields. For those 6 topics the sentiment signal is entirely ML-derived (S2). See Section 5 for how this is handled.
 
 Topics with `amenityKeys` (parking, pool, spa, etc.) are only counted as relevant if the property's amenity listings mention those keywords. A hotel without a pool does not get penalised for having no pool reviews.
 
@@ -75,7 +77,7 @@ The Coverage Score is the single 0–100 number shown as the animated ring on ev
 ```
 topicScore = w_coverage × coverage + w_freshness × freshness + w_sentiment × hybridSentiment
 
-coverage  = min(1, reviewCount / 10)
+coverage  = min(1, effectiveCoverageCount / saturationThreshold)
 freshness = max(0, 1 − daysSinceLastMention / 365)
 ```
 
@@ -83,6 +85,29 @@ Default weights: `w_coverage = 0.35`, `w_freshness = 0.35`, `w_sentiment = 0.30`
 These are replaced by per-property learned weights when sufficient data exists (see Section 6.3).
 
 Topics with zero mentions score 0 — no knowledge, no contribution.
+
+### Quality-weighted coverage count
+
+Rather than counting reviews naively, each review contributes a quality score between 0 and 1:
+
+```
+effectiveCoverageCount = Σ qualityScore_i   (over reviews mentioning this topic)
+```
+
+For reviews where a structured sub-rating exists for this topic:
+```
+alignment_i      = 1 − |textSentiment_i − structuredRating_i / 5|
+qualityScore_i   = alignmentWeight × alignment_i + (1 − alignmentWeight) × heuristicScore_i
+```
+
+For reviews without a structured sub-rating:
+```
+qualityScore_i   = heuristicScore_i   (length, vocabulary, specificity)
+```
+
+`alignmentWeight` and `saturationThreshold` are both ML-learned per property (see Section 6.3 D/E). Defaults are `alignmentWeight = 0.6` and `saturationThreshold = 10`.
+
+**Why this matters:** 10 low-quality, vague reviews should not score the same as 10 detailed reviews whose sentiment closely matches the structured rating. A review that says "great" but rates cleanliness 2/10 is internally inconsistent — its alignment score is low and it contributes less to coverage.
 
 ### Coverage Score aggregation
 
@@ -97,35 +122,41 @@ CoverageScore = Σ(importance_i × topicScore_i) / Σ(importance_i)
 Each topic is assigned a gap label used to prioritise follow-up questions:
 
 ```
-reviewCount == 0                          → high gap   (red)
-reviewCount < 3 OR stale (> 180 days)    → medium gap (amber)
-coverageScore < 0.5                       → low gap    (yellow)
-otherwise                                 → none       (green)
+effectiveCoverageCount == 0                               → high gap   (red)
+effectiveCoverageCount < saturationThreshold × 0.2
+  OR stale (> 180 days since last mention)               → medium gap (amber)
+topicCoverageScore < 0.5                                  → low gap    (yellow)
+otherwise                                                 → none       (green)
 ```
 
 ---
 
 ## 5. Sentiment Scoring — hybridSentimentScore
 
-The sentiment component of each topic score blends two signals:
+"Hybrid sentiment" means blending two distinct signal types: **structured ratings** (S1) and **ML-derived text sentiment** (S2). It does not involve GPT or any API call — both signals come from either the Expedia dataset or local ML inference.
 
-**S1 — Structured sub-ratings**
-Expedia collects per-topic sub-ratings (e.g. `roomcleanliness`, `service`). These are averaged and normalised to 0–1. Available for ~8 of the 15 topics. Returns `null` when no reviews carry non-zero values for that topic's fields.
+### S1 — Expedia structured sub-ratings
 
-**S2 — Text sentiment**
-One of two methods, in priority order:
+Expedia's dataset includes per-topic numeric sub-ratings (e.g. `roomcleanliness`, `service`). These are averaged across all reviews and normalised to 0–1. **Available for 9 of 15 topics** (see table in Section 3). Returns `null` when no reviews carry non-zero values for that topic's rating fields.
 
-1. **ML ABSA score** (preferred) — pre-computed by `scripts/run-absa.ts` using local ML models, stored in `lib/ml-sentiment-cache.json`. When a cached score exists it is used directly.
-2. **Keyword counting** (fallback) — if no ABSA cache exists, counts positive/negative words across reviews mentioning the topic, mapped to `0.1 + (posRatio × 0.8)`.
+### S2 — Local ML ABSA (primary) or keyword counting (fallback)
 
-**Blend formula:**
+1. **ML ABSA score** (preferred) — pre-computed by `scripts/run-absa.ts` using local MiniLM + DistilBERT models, stored in `lib/ml-sentiment-cache.json`. When a cached score exists it is used directly. This is the principal ML text-sentiment signal and handles negation, context, and nuance correctly.
+2. **Keyword counting** (fallback) — if no ABSA cache exists (e.g. the batch script hasn't been run yet), counts positive/negative words across reviews mentioning the topic, mapped to `0.1 + (posRatio × 0.8)`. This is a heuristic, not ML, and should be replaced by the ABSA cache in production.
+
+### Blend formula
+
 ```
-hybridSentiment = α × S1 + (1−α) × S2   (when S1 data exists)
-hybridSentiment = S2                      (when no structured ratings)
+hybridSentiment = α × S1 + (1−α) × S2   (when S1 data exists for this topic)
+hybridSentiment = S2                      (when no structured ratings — 6 topics)
 hybridSentiment = 0.5                     (when no reviews)
 ```
 
-`α` defaults to 0.55 and is learned per-property per-topic by OLS regression (see Section 6.3).
+`α` defaults to 0.55 and is learned per-property per-topic by OLS regression (see Section 6.3 B).
+
+### For the 6 topics without S1
+
+food_breakfast, wifi_internet, parking, noise, spa_wellness, and accessibility have no Expedia structured rating fields. For these topics `hybridSentiment = S2` entirely — the score is 100% derived from text via local ML ABSA. This is not a degradation: S2 (local ABSA using MiniLM + DistilBERT) is a strong signal. These topics simply cannot benefit from the cross-validation that S1 provides. The blend weight `α` is irrelevant for them and ignored.
 
 ---
 
@@ -193,7 +224,7 @@ Scores are averaged across contributing sentences, weighted by their MiniLM simi
 
 Implemented in `lib/ml/continuous-learning.ts`. Triggered on property page load and persisted to `lib/learned-weights.json`.
 
-Three sets of weights are learned per property from guest rating signals. All three use **Bayesian shrinkage** so that learned weights only dominate when sufficient data exists:
+Five values are learned per property from guest rating signals. All five use **Bayesian shrinkage** so that learned values only dominate when sufficient data exists:
 
 ```
 final_weight = (n / (n + 20)) × learned + (20 / (n + 20)) × default
@@ -209,7 +240,7 @@ Result: `topicImportance[]` — the `importance_i` values in the Coverage Score 
 
 **B — Sentiment blend weights (closed-form OLS)**
 
-For topics with Expedia structured sub-ratings, the optimal blend `α` between S1 and S2 is found analytically:
+For topics with Expedia structured sub-ratings (S1), the optimal blend `α` between S1 and S2 is found analytically:
 
 ```
 α* = Σ((y − S2)(S1 − S2)) / Σ((S1 − S2)²)
@@ -217,9 +248,9 @@ For topics with Expedia structured sub-ratings, the optimal blend `α` between S
 where y = rating.overall / 5
 ```
 
-`α` is clamped to [0.1, 0.9] then shrunk toward 0.55. This finds the weighting of structured ratings vs text sentiment that best predicts actual guest satisfaction at that specific property.
+`α` is clamped to [0.1, 0.9] then shrunk toward 0.55. This finds the weighting of structured ratings vs ML text sentiment that best predicts actual guest satisfaction at that specific property.
 
-Result: `sentimentBlend[]` — the `α` per topic used in `hybridSentimentScore`.
+Result: `sentimentBlend[]` — the `α` per topic used in `hybridSentimentScore`. Not used for the 6 topics without S1.
 
 **C — Topic score component weights (3-column OLS regression)**
 
@@ -233,6 +264,31 @@ y = mean(rating.overall / 5) for reviews mentioning topic i
 OLS via normal equations (`β = (XᵀX)⁻¹Xᵀy`) solves for the combination of coverage, freshness, and sentiment that best predicts actual guest satisfaction at this property. Negative weights are clamped to 0.05, then renormalised to sum to 1, then Bayesian shrinkage is applied.
 
 Result: `topicScoreWeights` — the `w_coverage`, `w_freshness`, `w_sentiment` values in the per-topic score formula.
+
+**D — Saturation threshold (running mean stabilisation)**
+
+The coverage formula is `min(1, effectiveCoverageCount / saturationThreshold)`. The default threshold of 10 is arbitrary — a property with 500 reviews per topic saturates too early, while a niche property might never reach 10 useful reviews.
+
+Learning procedure: reviews mentioning each topic are sorted chronologically. A running mean of `rating.overall / 5` is computed as each new review is added. The first index `k` at which 3 consecutive deltas fall below 0.03 (i.e. additional reviews stop moving the average) is the stabilisation point for that topic. The median across all relevant topics is taken as the property's threshold. Bayesian shrinkage is applied toward the default of 10.
+
+Result: `saturationThreshold` — the denominator in the coverage formula. Higher at properties with many consistent reviews; lower at properties where a small number of reviews reliably represents the guest experience.
+
+**E — Review alignment weight (1-D OLS)**
+
+When structured sub-ratings exist for a topic, we can measure how much a review's text sentiment agrees with its numeric rating — this is the *alignment* score. The blend between alignment-based quality and heuristic-based quality (text length, vocabulary richness) is itself learned:
+
+```
+qualityScore = alignmentWeight × alignment + (1 − alignmentWeight) × heuristicScore
+
+1D OLS: α* = Σ((y − h)(a − h)) / Σ((a − h)²)
+  where y = overall / 5
+        a = alignment score
+        h = heuristic score
+```
+
+The value `α*` is clamped to [0, 1] and shrunk toward 0.6.
+
+Result: `reviewAlignmentWeight` — how much weight to give text-rating alignment vs heuristic quality when computing `effectiveCoverageCount`. At properties where structured ratings and text sentiment track each other closely, alignment becomes the dominant quality signal.
 
 ---
 
@@ -302,10 +358,12 @@ scripts/run-absa.ts            →  lib/ml-sentiment-cache.json
 ON PAGE LOAD (per-property, results cached)
 ───────────────────────────────────────────
 learnPropertyWeights()
-  [Pearson + OLS, local]
+  [Pearson + OLS + running mean, local]
   ├── topicImportance[]        →  Coverage Score weighted mean (which topics matter most)
-  ├── sentimentBlend α[]       →  hybridSentimentScore (how much to trust structured vs text ratings)
-  └── topicScoreWeights        →  per-topic formula weights (coverage vs freshness vs sentiment)
+  ├── sentimentBlend α[]       →  hybridSentimentScore (how much to trust structured vs text)
+  ├── topicScoreWeights        →  per-topic formula weights (coverage vs freshness vs sentiment)
+  ├── saturationThreshold      →  denominator in coverage formula (when does adding reviews stop helping)
+  └── reviewAlignmentWeight    →  how much to weight alignment vs heuristic in quality scoring
 
 analyzeProperty()
   ├── classifyReview()
@@ -313,11 +371,18 @@ analyzeProperty()
   │   ├── liveClassificationCache     [Tier 2, MiniLM]
   │   └── keyword matching            [Tier 3, fallback]
   │
-  ├── getAbsaScore()           →  reads ml-sentiment-cache.json → replaces keyword S2
+  ├── effectiveCoverageCount = Σ quality_i
+  │   quality_i = alignmentWeight × alignment_i + (1−alignmentWeight) × heuristic_i
+  │               [uses learned alignmentWeight; alignment requires S1 field]
   │
-  ├── computeStructuredRatingScore()  →  S1 signal
+  ├── coverage = min(1, effectiveCoverageCount / saturationThreshold)
+  │              [saturationThreshold learned per property]
   │
-  ├── hybridSentimentScore = α×S1 + (1−α)×S2   [α learned by OLS]
+  ├── getAbsaScore()           →  reads ml-sentiment-cache.json → S2 signal
+  │
+  ├── computeStructuredRatingScore()  →  S1 signal (9 topics only)
+  │
+  ├── hybridSentimentScore = α×S1 + (1−α)×S2   [α learned by OLS; S2-only for 6 topics]
   │
   ├── topicScore = w_cov×coverage + w_fresh×freshness + w_sent×hybridSentiment
   │               [w_ learned by OLS regression]
