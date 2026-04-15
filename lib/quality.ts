@@ -67,7 +67,7 @@ export function checkTextQuality(text: string): QualityResult {
     };
   }
 
-  // Very low lexical diversity (same word repeated) — only flag when long enough
+  // Very low lexical diversity (same word repeated), only flag when long enough
   const uniqueWords = new Set(words.map((w) => w.toLowerCase().replace(/[^a-z]/g, "")));
   if (words.length > 5 && uniqueWords.size < Math.max(2, words.length * 0.35)) {
     return {
@@ -77,7 +77,7 @@ export function checkTextQuality(text: string): QualityResult {
     };
   }
 
-  // Passed — compute a quality score
+  // Passed: compute a quality score
   const lengthBonus = Math.min(0.3, words.length / 50);
   const diversityBonus = Math.min(0.2, (uniqueChars - 5) / 25);
   const vocabBonus = uniqueWords.size > 12 ? 0.1 : 0;
@@ -104,10 +104,10 @@ export function checkAnswerQuality(
   const LIKERT_VALUES = new Set([
     "strongly disagree", "disagree", "neutral", "agree", "strongly agree",
     "very poor", "poor", "average", "good", "excellent",
-    "n/a", "n/a — did not use this facility",
+    "n/a", "n/a: did not use this facility",
   ]);
   if (LIKERT_VALUES.has(trimmed.toLowerCase())) return true;
-  // Likert with elaboration (e.g. "Agree — great WiFi" or "Good — loved the pool")
+  // Likert with elaboration (e.g. "Agree: great WiFi" or "Good: loved the pool")
   const likertPrefix = trimmed.toLowerCase().split(/\s*[—–-]\s*/)[0].trim();
   if (LIKERT_VALUES.has(likertPrefix)) return true;
 

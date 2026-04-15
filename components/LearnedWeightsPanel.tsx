@@ -361,7 +361,7 @@ export default function LearnedWeightsPanel({ propertyId }: { propertyId: string
               <span className="font-semibold text-gray-700">How weights are learned:</span>{" "}
               Topic importance uses Pearson correlation between per-topic text sentiment and overall guest rating across all reviews mentioning that topic.
               Sentiment blend uses closed-form OLS to find the structured/text ratio that best predicts overall rating.
-              Both apply Bayesian shrinkage — with fewer than ~20 reviews per topic, weights stay close to defaults.
+              Both apply Bayesian shrinkage. With fewer than ~20 reviews per topic, weights stay close to defaults.
             </p>
           </div>
         </>

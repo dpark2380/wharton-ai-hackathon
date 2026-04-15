@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Star, ChevronDown, ChevronUp, ArrowRight, TrendingUp } from "lucide-react";
+import { getTopicById } from "@/lib/topics";
 
 interface LiveAnswer {
   topicId: string;
@@ -21,7 +22,7 @@ export interface LiveReviewEvent {
   id: string;
   propertyId: string;
   propertyName: string;
-  submittedAt: string; // ISO string — serialisable from server
+  submittedAt: string; // ISO string, serialisable from server
   travelerName: string;
   overallRating: number;
   reviewText: string;
@@ -52,7 +53,7 @@ function ReviewCard({ event }: { event: LiveReviewEvent }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all">
-      {/* Always-visible header — click to expand */}
+      {/* Always-visible header, click to expand */}
       <button
         onClick={() => setExpanded((e) => !e)}
         className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
@@ -158,7 +159,7 @@ function ReviewCard({ event }: { event: LiveReviewEvent }) {
               <div className="flex flex-wrap gap-1.5">
                 {event.improvedTopics.map((t) => (
                   <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium border border-blue-100">
-                    {t}
+                    {getTopicById(t)?.label ?? t}
                   </span>
                 ))}
               </div>

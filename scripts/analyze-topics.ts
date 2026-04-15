@@ -34,7 +34,7 @@ const AVAILABLE_RATING_KEYS = [
   "roomamenitiesscore", "communication", "ecofriendliness", "checkin", "location",
 ];
 
-// Current hand-crafted topics — used in reconciliation call
+// Current hand-crafted topics, used in reconciliation call
 const EXISTING_TOPICS = [
   { id: "cleanliness",       label: "Cleanliness" },
   { id: "location",          label: "Location & Neighborhood" },
@@ -209,9 +209,9 @@ Identify 10–20 distinct recurring themes. For each theme provide:
 - frequency_pct: rough % of reviews that mention this theme
 - typical_sentiment: "positive" | "negative" | "mixed"
 
-Respond ONLY with a valid JSON array — no markdown fences, no extra text:
+Respond ONLY with a valid JSON array, no markdown fences, no extra text:
 [{"id":"...","label":"...","example_phrases":["..."],"frequency_pct":15,"typical_sentiment":"mixed"}]`,
-    "Call 1/4 — Discovering themes from reviews"
+    "Call 1/4, Discovering themes from reviews"
   );
 
   const discoveredTopics = parseJSON<DiscoveredTopic[]>(raw1, "topic discovery") ?? [];
@@ -250,7 +250,7 @@ Task: Produce a final definitive topic list by deciding for each existing topic:
 KEEP (works as-is), MERGE (combine with a discovered theme), SPLIT (too broad),
 or REMOVE (not worth tracking). And flag any discovered themes to ADD.
 
-Respond ONLY with valid JSON — no markdown:
+Respond ONLY with valid JSON, no markdown:
 {
   "reconciliation": [
     {"action":"keep|add|merge|remove","id":"...","label":"...","rationale":"...","amenityKeys":["..."],"ratingKeys":["..."]}
@@ -259,7 +259,7 @@ Respond ONLY with valid JSON — no markdown:
     {"id":"...","label":"...","amenityKeys":["..."],"ratingKeys":["..."]}
   ]
 }`,
-    "Call 2/4 — Reconciling discovered themes with existing 15"
+    "Call 2/4, Reconciling discovered themes with existing 15"
   );
 
   const reconciliation = parseJSON<ReconciliationResult>(raw2, "reconciliation") ?? {
@@ -271,7 +271,7 @@ Respond ONLY with valid JSON — no markdown:
   report.push("");
   for (const r of reconciliation.reconciliation) {
     const icon = { keep: "✅", add: "➕", merge: "🔀", remove: "❌" }[r.action] ?? "•";
-    report.push(`${icon} **${r.action.toUpperCase()}** \`${r.id}\` — ${r.label}`);
+    report.push(`${icon} **${r.action.toUpperCase()}** \`${r.id}\`, ${r.label}`);
     report.push(`   > ${r.rationale}`);
   }
   report.push(`\n**Final topic count: ${reconciliation.final_topics.length}**`);
@@ -296,9 +296,9 @@ For each topic, extract 15–25 keywords or short phrases that are:
 - DATA-GROUNDED: actually appear in these reviews, not invented
 - VARIED: mix of nouns, verbs, adjectives, and compound phrases
 
-Respond ONLY with valid JSON — no markdown:
+Respond ONLY with valid JSON, no markdown:
 {"topic_id": ["keyword1", "keyword2", ...], ...}`,
-    "Call 3/4 — Extracting topic keywords from review text"
+    "Call 3/4, Extracting topic keywords from review text"
   );
 
   const topicKeywords = parseJSON<Record<string, string[]>>(raw3, "keyword extraction") ?? {};
@@ -321,14 +321,14 @@ Respond ONLY with valid JSON — no markdown:
 Reviews (format: [rating★] text):
 ${formatBatch(personaBatch)}
 
-Step 1 — Infer persona for each review from language cues:
+Step 1, Infer persona for each review from language cues:
 - "business": work trip, meeting, conference, WiFi for work, business center, etc.
 - "family": kids, children, family, pool for children, adjoining rooms, etc.
 - "couple": partner, romantic, anniversary, honeymoon, etc.
 - "solo": alone, solo, by myself, single traveler, etc.
 - "unknown": no clear signal
 
-Step 2 — For each persona with ≥5 inferred reviews, analyse:
+Step 2, For each persona with ≥5 inferred reviews, analyse:
 - Which topics do they mention most frequently?
 - Which topics do they rate most negatively?
 Then assign a weight (0.1–2.5) per topic reflecting how much this persona cares about it.
@@ -336,7 +336,7 @@ Then assign a weight (0.1–2.5) per topic reflecting how much this persona care
 
 Topics to weight: ${finalTopics.map((t) => t.id).join(", ")}
 
-Respond ONLY with valid JSON — no markdown:
+Respond ONLY with valid JSON, no markdown:
 {
   "persona_counts": {"business": 0, "family": 0, "couple": 0, "solo": 0, "unknown": 0},
   "confidence": "high | medium | low",
@@ -348,14 +348,14 @@ Respond ONLY with valid JSON — no markdown:
   },
   "notes": "caveats about data sufficiency or inference quality"
 }`,
-    "Call 4/4 — Inferring personas and deriving weights"
+    "Call 4/4, Inferring personas and deriving weights"
   );
 
   const personaData = parseJSON<PersonaResult>(raw4, "persona inference") ?? {
     persona_counts: {},
     confidence: "unknown",
     persona_weights: { business: {}, family: {}, couple: {}, solo: {} },
-    notes: "Parse failed — using empty weights",
+    notes: "Parse failed, using empty weights",
   };
 
   report.push("## 4. Persona Analysis");
@@ -459,7 +459,7 @@ ${JSON.stringify(personaData.persona_weights ?? {}, null, 2)};
   log(`    scripts/topic-analysis-report.md ← full analysis`);
   log(`\n  Next steps:`);
   log(`    1. Read scripts/topic-analysis-report.md`);
-  log(`    2. Review lib/topics-refined.ts — check keywords and weights`);
+  log(`    2. Review lib/topics-refined.ts, check keywords and weights`);
   log(`    3. If satisfied: cp lib/topics-refined.ts lib/topics.ts`);
   log(`    4. If persona confidence is low, tune PERSONA_WEIGHTS manually`);
 }

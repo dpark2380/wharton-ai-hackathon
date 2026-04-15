@@ -59,11 +59,11 @@ function LoggedInView({
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden" style={{ background: "#1E243A" }}>
-        <Link href="/"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
+        <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
         <button
           onClick={onSignOut}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
           Sign out
@@ -95,7 +95,7 @@ function LoggedInView({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-[#003580] uppercase tracking-widest mb-1">
-                    Your recent stay — auto-detected
+                    Your recent stay (auto-detected)
                   </p>
                   <h2 className="text-base font-bold text-[#1E243A] leading-tight">{hotel.name}</h2>
                   <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
@@ -103,12 +103,6 @@ function LoggedInView({
                     <span className="truncate">{hotel.location}</span>
                   </div>
                 </div>
-                {hotel.guestRating > 0 && (
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-2xl font-extrabold text-[#003580]">{hotel.guestRating.toFixed(1)}</p>
-                    <p className="text-xs text-gray-400">/ 10</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -120,7 +114,7 @@ function LoggedInView({
 
             <div className="px-5 py-5">
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                Your review helps future travelers — and takes less than 2 minutes.
+                Your review helps future travelers. It takes less than 2 minutes.
               </p>
               <button
                 onClick={() => router.push(`/review/${hotel.id}`)}
@@ -173,11 +167,11 @@ function GuestLanding({
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden" style={{ background: "#1E243A" }}>
-        <Link href="/"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
+        <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
         <Link
           href="/manager"
-          className="text-xs text-gray-400 hover:text-white transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
         >
           Hotel Manager →
         </Link>
@@ -196,7 +190,7 @@ function GuestLanding({
       </div>
 
       <div className="max-w-xl mx-auto w-full px-4 -mt-5 pb-16">
-        {/* Account picker — the only thing on the main page */}
+        {/* Account picker */}
         <div className="bg-white rounded-2xl shadow-md border border-[#E4E7EF] overflow-hidden">
           <div className="px-5 pt-5 pb-3 border-b border-[#E4E7EF]">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sign in as</p>
@@ -250,7 +244,7 @@ function GuestLanding({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function TravelerHome({ hotels }: TravelerHomeProps) {
-  // account is session-only — never restored from localStorage.
+  // account is session-only, never restored from localStorage.
   // Visiting / always shows the profile picker regardless of prior sessions.
   const [account, setAccount] = useState<DemoAccount | null>(null);
 

@@ -41,13 +41,13 @@ function LoggedInSplash({
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
-      <header style={{ background: "#1E243A" }} className="h-14 px-6 flex items-center justify-between overflow-hidden">
+      <header className="h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
         <div className="flex items-center gap-2">
-          <Link href="/manager"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+          <Link href="/manager"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
         </div>
         <button
           onClick={onSignOut}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
           Switch account
@@ -79,13 +79,13 @@ function LoginPage({ onSelect }: { onSelect: (a: ManagerAccount) => void }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
       {/* Header */}
-      <header style={{ background: "#1E243A" }} className="h-14 px-6 flex items-center justify-between overflow-hidden">
+      <header className="h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
         <div className="flex items-center gap-2">
-          <Link href="/manager"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+          <Link href="/manager"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
         </div>
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
         >
           ← Guest view
         </Link>

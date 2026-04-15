@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TopicAnalysis } from "@/lib/analysis";
 import { Review } from "@/lib/data";
-import { classifyText } from "@/lib/topics";
 import { Badge } from "@/components/ui/badge";
+
 import { AlertTriangle, TrendingDown, Clock, CheckCircle, MinusCircle, X, ChevronDown, Loader2 } from "lucide-react";
 
 // ── Per-review sentiment (client-safe keyword approach) ───────────────────────
@@ -92,13 +92,20 @@ export default function TopicCoverageMap({ topics, reviews = [], propertyId }: T
 
   const selectedTopic = relevantTopics.find((t) => t.topicId === selectedTopicId) ?? null;
 
+  // Build a set of pre-classified review IDs for the selected topic (server-computed,
+  // uses AI cache + embeddings — same classification used for the mention count).
+  const mentioningIdSet = useMemo(() => {
+    if (!selectedTopic) return new Set<string>();
+    return new Set(selectedTopic.mentioningReviewIds);
+  }, [selectedTopic]);
+
+  const reviewKey = (r: Review) =>
+    `${r.acquisition_date}|${r.rating?.overall ?? ""}|${(r.review_text ?? "").slice(0, 20)}`;
+
   // Find reviews that mention the selected topic, annotated with per-review sentiment
   const allTopicReviews = selectedTopicId
     ? reviews
-        .filter((r) => {
-          if (!r.review_text?.trim()) return false;
-          return classifyText(r.review_text).has(selectedTopicId);
-        })
+        .filter((r) => r.review_text?.trim() && mentioningIdSet.has(reviewKey(r)))
         .map((r) => ({ review: r, sentiment: getReviewSentiment(r) }))
     : [];
 
@@ -231,7 +238,7 @@ export default function TopicCoverageMap({ topics, reviews = [], propertyId }: T
           {allTopicReviews.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <p className="text-sm text-gray-400">No reviews mention this topic yet.</p>
-              <p className="text-xs text-gray-300 mt-1">This is a knowledge gap — prompt travelers to share their experience.</p>
+              <p className="text-xs text-gray-300 mt-1">This is a knowledge gap. Prompt travelers to share their experience.</p>
             </div>
           ) : displayedReviews.length === 0 ? (
             <div className="px-5 py-8 text-center">

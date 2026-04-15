@@ -36,12 +36,12 @@ export default function DebugPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "#F5F7FA" }}>
-      <header style={{ background: "#1E243A" }} className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden">
+      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
         <div className="flex items-center gap-4">
-          <Link href="/manager"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
-          <span className="text-gray-500 text-xs">Debug — All Properties</span>
+          <Link href="/manager"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
+          <span className="text-gray-500 text-xs">Debug: All Properties</span>
         </div>
-        <Link href="/manager" className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+        <Link href="/manager" className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to login
         </Link>
       </header>

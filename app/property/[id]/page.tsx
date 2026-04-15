@@ -129,7 +129,7 @@ export default async function PropertyOverviewPage({ params }: Props) {
               {highGaps.length} critical knowledge {highGaps.length === 1 ? "gap" : "gaps"}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              {highGaps.map((g) => g.topicLabel).join(" · ")} — no guest reviews yet
+              {highGaps.map((g) => g.topicLabel).join(" · ")}: no guest reviews yet
             </p>
           </div>
           <Link href={`/property/${id}/topics`}

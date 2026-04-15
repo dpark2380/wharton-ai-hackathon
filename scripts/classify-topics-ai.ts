@@ -4,7 +4,7 @@
  * Classifies every review in Reviews_PROC.csv by which of the 15 topics it
  * covers, using GPT-4o-mini. Reviews are sent in batches of 12.
  *
- * The result is written to lib/topic-classifications.json — a map of
+ * The result is written to lib/topic-classifications.json, a map of
  * sha256(review_text)[0..15] → string[] (topic IDs).
  *
  * analyzeProperty() reads this cache and falls back to keyword matching for
@@ -30,7 +30,7 @@ const BATCH_SIZE = 12;
 const MODEL = "gpt-4o-mini";
 const DATA_DIR = path.join(process.cwd(), "data");
 const OUT_FILE = path.join(process.cwd(), "lib", "topic-classifications.json");
-const DELAY_MS = 300; // between batches — stay well under rate limits
+const DELAY_MS = 300; // between batches, stay well under rate limits
 
 // ── Topics (mirrors lib/topics.ts) ───────────────────────────────────────────
 
@@ -94,7 +94,7 @@ async function classifyBatch(
 Available topics:
 ${TOPIC_LIST}
 
-For each numbered review below, identify which topics it meaningfully covers. Only include a topic if the review clearly discusses it — not a vague or passing reference.
+For each numbered review below, identify which topics it meaningfully covers. Only include a topic if the review clearly discusses it, not a vague or passing reference.
 
 Return ONLY a valid JSON object where each key is the review number (as a string) and the value is an array of matching topic IDs. If a review doesn't cover any topic, return an empty array.
 
@@ -150,7 +150,7 @@ async function main() {
       cache = JSON.parse(fs.readFileSync(OUT_FILE, "utf-8"));
       console.log(`Loaded existing cache: ${Object.keys(cache).length} reviews already classified`);
     } catch {
-      console.warn("Could not read existing cache — starting fresh");
+      console.warn("Could not read existing cache, starting fresh");
     }
   }
 
@@ -205,7 +205,7 @@ async function main() {
       console.log(`done. Topics found: ${Object.values(results).filter((t) => t.length > 0).length}/${batch.length} reviews`);
     } catch (err) {
       errors++;
-      console.error(`FAILED — ${err instanceof Error ? err.message : err}`);
+      console.error(`FAILED, ${err instanceof Error ? err.message : err}`);
     }
 
     // Write cache after every batch so progress is not lost on failure

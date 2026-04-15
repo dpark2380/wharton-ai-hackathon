@@ -19,7 +19,7 @@ export default async function TrendsPage({ params }: Props) {
       <div>
         <h2 className="text-xl font-extrabold text-[#1E243A]">Satisfaction Trends</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Historical guest satisfaction over time — overall and by topic.
+          Historical guest satisfaction over time, overall and by topic.
         </p>
       </div>
 

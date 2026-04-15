@@ -13,7 +13,7 @@
  *
  * 2. SENTIMENT BLEND WEIGHTS
  *    Optimal mix of S1 (Expedia structured sub-rating) vs S2 (keyword text
- *    sentiment) per topic. Method: closed-form OLS — finds α that minimises
+ *    sentiment) per topic. Method: closed-form OLS, finds α that minimises
  *    Σ(α·S1 + (1-α)·S2 - normalized_overall)².
  *
  * Both use Bayesian shrinkage toward defaults when data is sparse:
@@ -33,7 +33,7 @@ import path from "path";
 
 const DEFAULT_STRUCTURED_WEIGHT = 0.55; // S1
 const DEFAULT_TEXT_WEIGHT = 0.45;       // S2
-const PRIOR_STRENGTH = 20;              // pseudo-count — need ~20 reviews to move off prior
+const PRIOR_STRENGTH = 20;              // pseudo-count, need ~20 reviews to move off prior
 const MIN_REVIEWS_FOR_LEARNING = 3;     // skip topic if fewer than this many mentions
 const WEIGHTS_FILE = path.join(process.cwd(), "lib", "learned-weights.json");
 
@@ -154,7 +154,7 @@ function classifyReview(text: string): Set<string> {
     return new Set(liveClassificationCache.get(hash)!);
   }
 
-  // 3. Keyword matching — only if embedding API failed at submission
+  // 3. Keyword matching, only if embedding API failed at submission
   return classifyText(text);
 }
 
@@ -235,7 +235,7 @@ function shrink(learned: number, prior: number, n: number): number {
 //   X = [coverage, freshness, hybridTextSentiment]
 //   y = mean(rating.overall / 5) for reviews mentioning that topic
 //
-// OLS finds β* = (XᵀX)⁻¹Xᵀy — the coverage/freshness/sentiment blend that
+// OLS finds β* = (XᵀX)⁻¹Xᵀy, the coverage/freshness/sentiment blend that
 // best predicts actual guest satisfaction per topic at this property.
 // Weights are clamped ≥ 0.05, normalised to sum to 1, then shrunk toward
 // the hardcoded defaults (0.35 / 0.35 / 0.30).
@@ -292,16 +292,16 @@ function learnTopicScoreWeights(
     // Coverage
     const coverage = Math.min(1, mentioning.length / 10);
 
-    // Freshness — days since most recent mention
+    // Freshness, days since most recent mention
     const dates = mentioning.map((p) => parseReviewDate(p.review.acquisition_date));
     const latestMs = Math.max(...dates.map((d) => d.getTime()));
     const daysSince = (NOW_CL.getTime() - latestMs) / (1000 * 60 * 60 * 24);
     const freshness = Math.max(0, 1 - daysSince / 365);
 
-    // Sentiment — mean text sentiment across mentioning reviews
+    // Sentiment, mean text sentiment across mentioning reviews
     const sentiment = mentioning.reduce((s, p) => s + p.textSentiment, 0) / mentioning.length;
 
-    // Target — mean normalised overall rating for these reviews
+    // Target, mean normalised overall rating for these reviews
     const target = mentioning.reduce((s, p) => s + p.overallNorm, 0) / mentioning.length;
 
     rows.push({ x: [coverage, freshness, sentiment], y: target });
@@ -321,7 +321,7 @@ function learnTopicScoreWeights(
   const learnedFreshness = bf / total;
   const learnedSentiment = bs / total;
 
-  // Bayesian shrinkage — use row count as the pseudo-observation count
+  // Bayesian shrinkage, use row count as the pseudo-observation count
   const n = rows.length;
   return {
     coverageWeight:  Math.round(shrink(learnedCoverage,  SCORE_WEIGHT_DEFAULTS.coverageWeight,  n) * 1000) / 1000,
@@ -364,7 +364,7 @@ export function learnPropertyWeights(
     const xs = mentioning.map((p) => p.textSentiment);
     const ys = mentioning.map((p) => p.overallNorm);
     const r = pearson(xs, ys);
-    const rawWeight = Math.max(0, r); // floor at 0 — negative correlation → no reduction
+    const rawWeight = Math.max(0, r); // floor at 0, negative correlation → no reduction
 
     return { topicId: topic.id, rawWeight, n, correlation: r };
   });

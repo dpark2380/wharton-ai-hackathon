@@ -104,10 +104,10 @@ ${reviewContext}
 
 Generate four short insights for the hotel manager:
 
-1. "summary": 2 sentences — overall picture of the guest experience.
-2. "issues": 2–3 sentences — the most important, specific problems guests raise that need fixing. Name the actual issues (e.g., "parking," "WiFi reliability," "room noise"). Prioritise problems appearing in RECENT reviews.
-3. "strengths": 1–2 sentences — what guests consistently praise and the hotel should protect and market.
-4. "trend": 1–2 sentences — how recent guest sentiment compares to older reviews. If stable, say so briefly.
+1. "summary": 2 sentences, overall picture of the guest experience.
+2. "issues": 2–3 sentences, the most important, specific problems guests raise that need fixing. Name the actual issues (e.g., "parking," "WiFi reliability," "room noise"). Prioritise problems appearing in RECENT reviews.
+3. "strengths": 1–2 sentences, what guests consistently praise and the hotel should protect and market.
+4. "trend": 1–2 sentences, how recent guest sentiment compares to older reviews. If stable, say so briefly.
 
 Be direct, specific, and practical. This is an internal briefing, not a public summary.
 

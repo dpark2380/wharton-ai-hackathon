@@ -188,7 +188,7 @@ async function main() {
   if (!apiKey) { console.error("OPENAI_API_KEY not set"); process.exit(1); }
 
   if (!fs.existsSync(CLASSIFICATIONS_FILE)) {
-    console.error("lib/topic-classifications.json not found — run classify-topics-ai first");
+    console.error("lib/topic-classifications.json not found, run classify-topics-ai first");
     process.exit(1);
   }
 
@@ -218,7 +218,7 @@ async function main() {
     const prop = properties[pi];
     const reviews = byProperty.get(prop.eg_property_id) ?? [];
 
-    process.stdout.write(`[${pi + 1}/${properties.length}] ${prop.city}, ${prop.country} — `);
+    process.stdout.write(`[${pi + 1}/${properties.length}] ${prop.city}, ${prop.country}, `);
 
     // Classify each review and split into recent vs historical by topic
     const topicRecent = new Map<string, string[]>();

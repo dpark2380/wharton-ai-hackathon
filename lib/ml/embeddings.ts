@@ -2,7 +2,7 @@
  * lib/ml/embeddings.ts
  *
  * Local embedding model using @xenova/transformers (all-MiniLM-L6-v2).
- * Runs entirely in-process — no API calls, no per-request cost, no network dependency.
+ * Runs entirely in-process, no API calls, no per-request cost, no network dependency.
  *
  * Model: sentence-transformers/all-MiniLM-L6-v2
  *   - 384-dimensional embeddings
@@ -108,7 +108,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
 }
 
 /**
- * Cosine similarity between two vectors — range [-1, 1].
+ * Cosine similarity between two vectors, range [-1, 1].
  * For normalized embeddings this is equivalent to dot product.
  */
 export function cosineSimilarity(a: number[], b: number[]): number {

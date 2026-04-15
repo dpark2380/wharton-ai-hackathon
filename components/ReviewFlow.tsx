@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { Star, ArrowRight, Loader2, Mic, AlertCircle } from "lucide-react";
 import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
 import ReviewerImpact from "./ReviewerImpact";
-import KnowledgeHealthScore from "./KnowledgeHealthScore";
 import PhotoUpload, { AnalyzedPhoto } from "./PhotoUpload";
 import { checkTextQuality } from "@/lib/quality";
 
@@ -89,7 +88,7 @@ export default function ReviewFlow({
 
     setIsAnalyzing(true);
     try {
-      // Skip analyze step when no text — no topics covered yet
+      // Skip analyze step when no text, no topics covered yet
       const coveredIds: string[] = [];
       if (reviewText.trim()) {
         const analyzeRes = await fetch("/api/analyze-review", {
@@ -195,7 +194,6 @@ export default function ReviewFlow({
       {/* Step indicator */}
       <div className="bg-[#1a1a2e] px-6 py-4">
         <div className="flex items-center gap-3 mb-3">
-          <KnowledgeHealthScore score={currentHealthScore} size="sm" />
           <div>
             <p className="text-white font-semibold text-sm">{propertyName}</p>
             <p className="text-gray-400 text-xs">{city}, {country}</p>
@@ -446,7 +444,7 @@ function PhotosStep({
       <div>
         <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">Add Photos</h2>
         <p className="text-sm text-gray-500">
-          Optional — our AI will label each photo and use it to improve the hotel&apos;s knowledge score.
+          Optional: our AI will label each photo and use it to improve the hotel&apos;s knowledge score.
         </p>
       </div>
 
@@ -455,7 +453,7 @@ function PhotosStep({
       <div className="flex gap-3">
         <button
           onClick={() => onFinish(photos)}
-          disabled={photos.some(() => false)} // always enabled — photos are pre-analyzed
+          disabled={photos.some(() => false)} // always enabled, photos are pre-analyzed
           className="flex-1 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
           style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
         >

@@ -4,7 +4,7 @@
  * Embedding-based topic classifier.
  *
  * Each topic has a rich natural-language description designed to capture its
- * semantic space — not just surface keywords. The incoming review text is
+ * semantic space, not just surface keywords. The incoming review text is
  * embedded and compared (cosine similarity) against each topic description.
  * Topics above the threshold are assigned.
  *

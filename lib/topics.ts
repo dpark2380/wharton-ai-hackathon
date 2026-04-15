@@ -27,7 +27,7 @@ export const TOPICS: Topic[] = [
       "public transport", "subway", "metro", "bus", "taxi", "uber", "downtown",
       "city center", "quiet street", "noisy street", "surroundings"
     ],
-    amenityKeys: ["convenienceoflocation", "neighborhoodsatisfaction"],
+    amenityKeys: [],
     ratingKeys: ["location", "convenienceoflocation", "neighborhoodsatisfaction"],
   },
   {
@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
       "arrival", "reception", "front desk", "late check-in", "early check-in",
       "key card", "key", "welcome", "greeted", "wait", "queue", "line"
     ],
-    amenityKeys: ["checkin", "frontdesk_24_hour"],
+    amenityKeys: [],
     ratingKeys: ["checkin", "communication"],
   },
   {
@@ -106,7 +106,7 @@ export const TOPICS: Topic[] = [
       "king bed", "queen bed", "twin", "double", "sofa bed", "bedding",
       "linens", "blanket", "duvet", "temperature", "air conditioning", "heating", "ac"
     ],
-    amenityKeys: ["roomcomfort", "roomquality", "ac"],
+    amenityKeys: [],
     ratingKeys: ["roomcomfort", "roomquality", "roomamenitiesscore"],
   },
   {
@@ -129,7 +129,7 @@ export const TOPICS: Topic[] = [
       "responsive", "excellent service", "poor service", "accommodating",
       "hospitality", "went above and beyond", "helpful staff", "team"
     ],
-    amenityKeys: ["service", "guest_services"],
+    amenityKeys: [],
     ratingKeys: ["service", "communication"],
   },
   {
@@ -140,7 +140,7 @@ export const TOPICS: Topic[] = [
       "good value", "bad value", "price point", "cost", "fee", "charge",
       "money's worth", "budget", "luxury", "bang for your buck"
     ],
-    amenityKeys: ["valueformoney"],
+    amenityKeys: [],
     ratingKeys: ["valueformoney"],
   },
   {

@@ -7,7 +7,7 @@
  * GPT-4o-mini in a single structured call and ask for per-review sentiment
  * toward that specific aspect.
  *
- * This produces sentiment scores at the topic × review level — far more precise
+ * This produces sentiment scores at the topic × review level, far more precise
  * than the current approach which counts positive/negative words across ALL
  * reviews mentioning a topic in aggregate.
  *

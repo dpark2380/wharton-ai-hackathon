@@ -55,7 +55,7 @@ function LikertInput({
   const handleDone = () => {
     if (!chosen) return;
     const combined = elaboration.trim()
-      ? `${chosen.short} — ${elaboration.trim()}`
+      ? `${chosen.short}: ${elaboration.trim()}`
       : chosen.short;
     onSubmit(combined);
   };
@@ -96,7 +96,7 @@ function LikertInput({
 
       {/* N/A button */}
       <button
-        onClick={() => { setSelected(-1); onSubmit("N/A — did not use this facility"); }}
+        onClick={() => { setSelected(-1); onSubmit("N/A: did not use this facility"); }}
         className="w-full py-2 rounded-xl text-xs font-medium border transition-all duration-150 active:scale-95"
         style={{
           background: naSelected ? "#f3f4f6" : "white",
@@ -104,7 +104,7 @@ function LikertInput({
           color: "#9ca3af",
         }}
       >
-        Not applicable — I didn&apos;t use this
+        Not applicable: I didn&apos;t use this
       </button>
 
       {/* Optional elaboration */}
@@ -138,7 +138,7 @@ function YesNoInput({ onSubmit }: { onSubmit: (answer: string) => void }) {
 
   const handleDone = () => {
     if (!selected) return;
-    const combined = elaboration.trim() ? `${selected} — ${elaboration.trim()}` : selected;
+    const combined = elaboration.trim() ? `${selected}: ${elaboration.trim()}` : selected;
     onSubmit(combined);
   };
 

@@ -12,6 +12,6 @@ export async function POST() {
 
   reviewStore.reset();
 
-  console.log("[demo] Store reset — all live reviews cleared.");
+  console.log("[demo] Store reset, all live reviews cleared.");
   return NextResponse.json({ ok: true, message: "Demo reset. All live reviews cleared." });
 }

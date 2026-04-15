@@ -5,6 +5,7 @@ import {
   calculatePointsEarned, getLevel, getNextLevel, progressToNextLevel,
   addPoints, getStoredPoints, EXCLUSIVE_DEALS, type Level,
 } from "@/lib/levels";
+import { getTopicById } from "@/lib/topics";
 
 interface ReviewerImpactProps {
   accountId: string;
@@ -63,7 +64,7 @@ export default function ReviewerImpact({
           <p className="text-base font-extrabold" style={{ color: currentLevel.color }}>
             Level Up! You reached {currentLevel.name}
           </p>
-          <p className="text-xs text-gray-500 mt-1">New perks unlocked — see below</p>
+          <p className="text-xs text-gray-500 mt-1">New perks unlocked. See below.</p>
         </div>
       )}
 
@@ -94,7 +95,7 @@ export default function ReviewerImpact({
           <div className="flex items-center gap-2">
             {currentLevel.badge && <span className="text-lg">{currentLevel.badge}</span>}
             <div>
-              <p className="text-sm font-bold text-[#1a1a2e]">Level {currentLevel.level} — {currentLevel.name}</p>
+              <p className="text-sm font-bold text-[#1a1a2e]">Level {currentLevel.level}: {currentLevel.name}</p>
               <p className="text-xs text-gray-400">{newPoints.toLocaleString()} total points</p>
             </div>
           </div>
@@ -125,7 +126,7 @@ export default function ReviewerImpact({
           <div className="flex flex-wrap gap-1.5">
             {improvedTopics.map((t) => (
               <span key={t} className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700 border border-green-200">
-                ✓ {t}
+                ✓ {getTopicById(t)?.label ?? t}
               </span>
             ))}
           </div>

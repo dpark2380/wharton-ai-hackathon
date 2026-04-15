@@ -42,7 +42,7 @@ export default function TrendsClient({ propertyId }: { propertyId: string }) {
       .catch(() => setLoading(false));
   }, [propertyId, granularity]);
 
-  // Simple SVG line chart — no external dependency needed
+  // Simple SVG line chart, no external dependency needed
   const width = 600;
   const height = 200;
   const padLeft = 40;

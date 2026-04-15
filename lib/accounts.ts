@@ -30,7 +30,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     recentCountry: "Italy",
     checkOutDate: "Apr 10, 2026",
     nightsStayed: 3,
-    startingPoints: 420, // Level 4 — Trusted Guide
+    startingPoints: 420, // Level 4, Trusted Guide
   },
   {
     id: "sarah",
@@ -43,7 +43,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     recentCountry: "United States",
     checkOutDate: "Apr 8, 2026",
     nightsStayed: 5,
-    startingPoints: 820, // Level 5 — Platinum Guide
+    startingPoints: 820, // Level 5, Platinum Guide
   },
   {
     id: "alex",
@@ -56,7 +56,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     recentCountry: "Thailand",
     checkOutDate: "Apr 11, 2026",
     nightsStayed: 7,
-    startingPoints: 60, // Level 2 — Insider (close to Local Expert)
+    startingPoints: 60, // Level 2, Insider (close to Local Expert)
   },
   {
     id: "emma",
@@ -69,7 +69,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     recentCountry: "Italy",
     checkOutDate: "Apr 9, 2026",
     nightsStayed: 4,
-    startingPoints: 1800, // Level 6 — Elite Guide
+    startingPoints: 1800, // Level 6, Elite Guide
   },
   {
     id: "michael",
@@ -82,7 +82,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     recentCountry: "United States",
     checkOutDate: "Apr 12, 2026",
     nightsStayed: 2,
-    startingPoints: 8, // Level 1 — Explorer (just started)
+    startingPoints: 8, // Level 1, Explorer (just started)
   },
 ];
 

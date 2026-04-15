@@ -69,7 +69,7 @@ export interface MLTopicResult {
   // Top evidence quotes
   evidence: { text: string; sentiment: ReviewAspectSentiment["sentiment"]; score: number }[];
 
-  // Freshness (unchanged — dates don't change)
+  // Freshness (unchanged, dates don't change)
   freshnessDays: number | null;
   freshnessScore: number;
   isStale: boolean;
@@ -125,7 +125,7 @@ function isAmenityRelevant(property: Property, amenityKeys: string[]): boolean {
   return amenityKeys.some((k) => allText.includes(k.replace(/_/g, " ")) || allText.includes(k));
 }
 
-// Keyword sentiment replication (for comparison baseline) — same logic as analysis.ts
+// Keyword sentiment replication (for comparison baseline), same logic as analysis.ts
 const POS_WORDS = ["great","excellent","amazing","wonderful","fantastic","loved","perfect",
   "good","nice","lovely","outstanding","superb","best","clean","comfortable",
   "helpful","friendly","beautiful","delicious","spacious","modern","recommend"];
@@ -196,7 +196,7 @@ export async function analyzePropertyML(
     }
   }
 
-  // ── Step 2: ABSA — run in parallel across all relevant topics ─────────────
+  // ── Step 2: ABSA, run in parallel across all relevant topics ─────────────
   const relevantTopics = TOPICS.filter((t) => isAmenityRelevant(property, t.amenityKeys));
 
   const absa = await Promise.all(
@@ -277,7 +277,7 @@ export async function analyzePropertyML(
         : coverageScore * 0.35 + freshnessScore * 0.35 + mlSentScore * 0.30
       : 1;
 
-    // Keyword topic score for comparison (approximate — freshness same, keyword coverage + sentiment)
+    // Keyword topic score for comparison (approximate, freshness same, keyword coverage + sentiment)
     const kwCoverageScore = Math.min(1, keywordCount / 10);
     const keywordTopicScore = isRelevant
       ? keywordCount === 0 ? 0

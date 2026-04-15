@@ -27,7 +27,7 @@ export default async function TopicsPage({ params }: Props) {
       <div>
         <h2 className="text-xl font-extrabold text-[#1E243A]">Topic Coverage</h2>
         <p className="text-sm text-gray-500 mt-1">
-          How well each topic area is covered by guest reviews — recency, volume, and sentiment.
+          How well each topic area is covered by guest reviews: recency, volume, and sentiment.
         </p>
       </div>
 
@@ -54,6 +54,7 @@ export default async function TopicsPage({ params }: Props) {
       <div className="bg-white rounded-2xl border border-[#E4E7EF] p-6">
         <TopicCoverageMap
           topics={analysis.topics}
+          reviews={reviews}
           propertyId={id}
         />
       </div>

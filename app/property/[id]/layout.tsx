@@ -37,7 +37,7 @@ export default async function PropertyLayout({ children, params }: Props) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar — desktop only (sidebar already shows on desktop) */}
+        {/* Top bar, desktop only (sidebar shows on desktop) */}
         <div className="hidden lg:flex items-center justify-between px-8 py-4 bg-white border-b border-[#E4E7EF]">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-widest">Expedia Partner Central</p>

@@ -2,7 +2,7 @@
  * lib/store.ts
  *
  * In-memory store for live reviews submitted during the demo.
- * Resets automatically when the dev server restarts — no persistence needed.
+ * Resets automatically when the dev server restarts, no persistence needed.
  *
  * Uses globalThis so the singleton survives Next.js hot-module reloads in dev.
  * Import reviewStore wherever you need to read or write live reviews.
@@ -53,7 +53,7 @@ export interface ReviewEvent {
   photos: { dataUrl: string; topicId: string; label: string; sentiment: string }[];
 }
 
-// Mirrors lib/data.ts Review shape — duplicated here to avoid a circular import
+// Mirrors lib/data.ts Review shape, duplicated here to avoid a circular import
 // (data.ts will import from store.ts, so store.ts must not import from data.ts)
 interface ReviewShape {
   eg_property_id: string;
@@ -181,7 +181,7 @@ class ReviewStore {
   reset(): void {
     this.reviews.clear();
     this.events = [];
-    // Keep listeners — SSE connections may still be open
+    // Keep listeners, SSE connections may still be open
   }
 }
 

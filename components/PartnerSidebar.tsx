@@ -54,7 +54,9 @@ export default function PartnerSidebar({ propertyId, propertyName, city, country
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-        <Link href="/manager"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+        <button onClick={handleSignOut} className="block">
+          <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" />
+        </button>
       </div>
 
       {/* Property */}
@@ -123,11 +125,12 @@ export default function PartnerSidebar({ propertyId, propertyName, city, country
 
       {/* Mobile top bar */}
       <header
-        className="lg:hidden sticky top-0 z-40 h-14 flex items-center justify-between px-4 overflow-hidden"
-        style={{ background: "#1E243A" }}
+        className="lg:hidden sticky top-0 z-40 h-14 flex items-center justify-between px-4 overflow-hidden bg-white border-b border-[#E4E7EF]"
       >
-        <Link href="/manager"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
-        <button onClick={() => setOpen(true)} className="text-white/70 hover:text-white">
+        <button onClick={handleSignOut} className="block">
+          <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" />
+        </button>
+        <button onClick={() => setOpen(true)} className="text-gray-400 hover:text-gray-700">
           <Menu className="w-5 h-5" />
         </button>
       </header>

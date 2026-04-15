@@ -81,7 +81,7 @@ Questions must:
 - Feel natural, like a friend asking about their stay
 - NOT ask about anything the reviewer already mentioned
 - NOT repeat any topics they covered
-- CRITICAL: Each question must cover ONE thing only — never combine two questions into one with "and" or "?" mid-sentence. If you need to ask about two aspects, pick the most important one.
+- CRITICAL: Each question must cover ONE thing only, never combine two questions into one with "and" or "?" mid-sentence. If you need to ask about two aspects, pick the most important one.
 
 Choose the question type carefully:
 - Use "yes_no" for binary questions: "Did you use the pool?", "Was parking available?", "Did the room have a bathtub?"

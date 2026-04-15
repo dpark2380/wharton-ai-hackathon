@@ -1,7 +1,7 @@
 /**
  * lib/levels.ts
  *
- * Reviewer levels system — inspired by Google Local Guides.
+ * Reviewer levels system, inspired by Google Local Guides.
  * Points accumulate in localStorage per demo account.
  */
 
@@ -167,7 +167,7 @@ export function calculatePointsEarned(reviewText: string, answerCount: number, p
     breakdown.push({ label: `${answerCount} follow-up answer${answerCount > 1 ? "s" : ""}`, points: answerCount * 3 });
   }
 
-  // Photos — 5 pts each
+  // Photos, 5 pts each
   if (photoCount > 0) {
     breakdown.push({ label: `${photoCount} photo${photoCount > 1 ? "s" : ""} added`, points: photoCount * 5 });
   }

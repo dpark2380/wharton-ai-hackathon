@@ -18,7 +18,7 @@ function getAiClassifications(): Record<string, string[]> {
     const filePath = path.join(process.cwd(), "lib", "topic-classifications.json");
     _aiClassifications = JSON.parse(fs.readFileSync(filePath, "utf-8"));
   } catch {
-    _aiClassifications = {}; // file not generated yet — use keyword matching only
+    _aiClassifications = {}; // file not generated yet, use keyword matching only
   }
   return _aiClassifications!;
 }
@@ -34,7 +34,7 @@ function hashText(text: string): string {
  * liveClassificationCache, so keyword matching is only reached if the embedding
  * API failed during submission.
  */
-function classifyReview(reviewText: string): Set<string> {
+export function classifyReview(reviewText: string): Set<string> {
   const hash = hashText(reviewText);
 
   // 1. AI GPT file cache (all historical reviews)
@@ -48,7 +48,7 @@ function classifyReview(reviewText: string): Set<string> {
     return new Set(liveClassificationCache.get(hash)!);
   }
 
-  // 3. Keyword matching — only reached if embedding API failed at submission
+  // 3. Keyword matching, only reached if embedding API failed at submission
   return classifyText(reviewText);
 }
 
@@ -71,6 +71,7 @@ export interface TopicAnalysis {
   hasSentimentShift: boolean;
   lastMentionDate: string | null;
   gap: "high" | "medium" | "low" | "none";
+  mentioningReviewIds: string[]; // IDs of reviews that mention this topic (server-classified)
 }
 
 export interface PropertyAnalysis {
@@ -310,6 +311,9 @@ export function analyzeProperty(
       hasSentimentShift,
       lastMentionDate,
       gap,
+      mentioningReviewIds: mentioningReviews.map((r) =>
+        `${r.acquisition_date}|${r.rating?.overall ?? ""}|${(r.review_text ?? "").slice(0, 20)}`
+      ),
     };
   });
 

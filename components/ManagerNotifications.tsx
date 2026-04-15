@@ -47,7 +47,7 @@ export default function ManagerNotifications() {
     };
 
     source.onerror = () => {
-      // SSE will auto-reconnect — no action needed
+      // SSE will auto-reconnect, no action needed
     };
 
     return () => source.close();

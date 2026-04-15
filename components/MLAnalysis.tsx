@@ -313,7 +313,7 @@ export default function MLAnalysis({ propertyId }: { propertyId: string }) {
       {/* Method note */}
       <div className="rounded-xl bg-[#faf8f5] border border-[#e5e0d8] px-4 py-3">
         <p className="text-[11px] text-gray-500 leading-relaxed">
-          <span className="font-semibold text-gray-700">How this works:</span> Review texts are embedded using OpenAI <code className="text-[10px] bg-white border border-gray-200 rounded px-1">text-embedding-3-small</code> and compared via cosine similarity to semantic topic descriptions — replacing keyword matching. Sentiment is computed with aspect-based sentiment analysis (ABSA) using GPT-4o-mini with structured prompting, giving per-review, per-topic scores instead of aggregate word counts. Negation (&quot;not dirty&quot;) and paraphrasing (&quot;lumpy mattress&quot;) are handled correctly.
+          <span className="font-semibold text-gray-700">How this works:</span> Review texts are embedded using OpenAI <code className="text-[10px] bg-white border border-gray-200 rounded px-1">text-embedding-3-small</code> and compared via cosine similarity to semantic topic descriptions, replacing keyword matching. Sentiment is computed with aspect-based sentiment analysis (ABSA) using GPT-4o-mini with structured prompting, giving per-review, per-topic scores instead of aggregate word counts. Negation (&quot;not dirty&quot;) and paraphrasing (&quot;lumpy mattress&quot;) are handled correctly.
         </p>
       </div>
     </div>

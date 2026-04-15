@@ -16,7 +16,7 @@ export interface ManagerAccount {
   starRating: number;
 }
 
-// Property IDs from the dataset — matched to traveler accounts where possible
+// Property IDs from the dataset, matched to traveler accounts where possible
 // so the demo can show: guest submitted → manager sees it live.
 export const MANAGER_ACCOUNTS: ManagerAccount[] = [
   {

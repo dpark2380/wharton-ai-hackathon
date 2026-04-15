@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MapPin, Star, ArrowLeft } from "lucide-react";
 import ReviewFlow from "@/components/ReviewFlow";
 
@@ -63,7 +64,7 @@ export default function ReviewPageClient({
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
-          <Link href="/"><img src="/Expedia-Logo.png" alt="Expedia" className="h-14 w-auto" /></Link>
+          <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
           {/* Spacer to balance back button */}
           <div className="w-16" />
         </div>
