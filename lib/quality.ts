@@ -104,6 +104,7 @@ export function checkAnswerQuality(
   const LIKERT_VALUES = new Set([
     "strongly disagree", "disagree", "neutral", "agree", "strongly agree",
     "very poor", "poor", "average", "good", "excellent",
+    "n/a", "n/a — did not use this facility",
   ]);
   if (LIKERT_VALUES.has(trimmed.toLowerCase())) return true;
   // Likert with elaboration (e.g. "Agree — great WiFi" or "Good — loved the pool")

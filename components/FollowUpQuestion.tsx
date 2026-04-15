@@ -60,6 +60,8 @@ function LikertInput({
     onSubmit(combined);
   };
 
+  const naSelected = selected === -1;
+
   return (
     <div className="mt-3 space-y-3">
       {/* 5-button scale */}
@@ -77,7 +79,6 @@ function LikertInput({
                 boxShadow: isSelected ? `0 0 0 2px ${opt.color}40` : "none",
               }}
             >
-              {/* Dot indicator */}
               <div
                 className="w-2.5 h-2.5 rounded-full transition-all"
                 style={{ background: isSelected ? "white" : opt.color, opacity: isSelected ? 1 : 0.6 }}
@@ -92,6 +93,19 @@ function LikertInput({
           );
         })}
       </div>
+
+      {/* N/A button */}
+      <button
+        onClick={() => { setSelected(-1); onSubmit("N/A — did not use this facility"); }}
+        className="w-full py-2 rounded-xl text-xs font-medium border transition-all duration-150 active:scale-95"
+        style={{
+          background: naSelected ? "#f3f4f6" : "white",
+          borderColor: "#e5e0d8",
+          color: "#9ca3af",
+        }}
+      >
+        Not applicable — I didn&apos;t use this
+      </button>
 
       {/* Optional elaboration */}
       {chosen && (

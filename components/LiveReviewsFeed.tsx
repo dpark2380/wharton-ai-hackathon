@@ -10,6 +10,13 @@ interface LiveAnswer {
   answer: string;
 }
 
+export interface LiveReviewPhoto {
+  dataUrl: string;
+  topicId: string;
+  label: string;
+  sentiment: string;
+}
+
 export interface LiveReviewEvent {
   id: string;
   propertyId: string;
@@ -23,6 +30,7 @@ export interface LiveReviewEvent {
   improvement: number;
   improvedTopics: string[];
   answers: LiveAnswer[];
+  photos: LiveReviewPhoto[];
 }
 
 function StarRow({ rating }: { rating: number }) {
@@ -104,6 +112,29 @@ function ReviewCard({ event }: { event: LiveReviewEvent }) {
                   <div key={a.topicId} className="bg-gray-50 rounded-xl px-3 py-2">
                     <p className="text-xs font-semibold text-[#1E243A] mb-0.5">{a.topicLabel}</p>
                     <p className="text-sm text-gray-600">{a.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Photos */}
+          {event.photos?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Photos</p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {event.photos.map((photo, i) => (
+                  <div key={i} className="flex-shrink-0 w-28 rounded-xl overflow-hidden border border-gray-100">
+                    <img src={photo.dataUrl} alt={photo.label} className="w-28 h-20 object-cover" />
+                    <div className="p-1.5 bg-white">
+                      <p className="text-[10px] font-medium text-[#1a1a2e] leading-snug line-clamp-2">{photo.label}</p>
+                      <span
+                        className="text-[10px] font-semibold"
+                        style={{ color: photo.sentiment === "positive" ? "#22c55e" : photo.sentiment === "negative" ? "#ef4444" : "#6b7280" }}
+                      >
+                        {photo.sentiment}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,7 @@ import { Star, ArrowRight, Loader2, Mic, AlertCircle } from "lucide-react";
 import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
 import ReviewerImpact from "./ReviewerImpact";
 import KnowledgeHealthScore from "./KnowledgeHealthScore";
+import PhotoUpload, { AnalyzedPhoto } from "./PhotoUpload";
 import { checkTextQuality } from "@/lib/quality";
 
 // SSR: false prevents hydration mismatch from SpeechRecognition feature detection
@@ -28,7 +29,7 @@ interface ReviewFlowProps {
   accountId?: string;
 }
 
-type Step = "write" | "questions" | "thankyou";
+type Step = "write" | "questions" | "photos" | "thankyou";
 
 interface AnswerPayload {
   topicId: string;
@@ -55,6 +56,7 @@ export default function ReviewFlow({
   const [questions, setQuestions] = useState<FollowUpQuestion[]>([]);
   const [coveredTopicIds, setCoveredTopicIds] = useState<string[]>([]);
   const [answers, setAnswers] = useState<AnswerPayload[]>([]);
+  const [photos, setPhotos] = useState<AnalyzedPhoto[]>([]);
   const [scoreResult, setScoreResult] = useState<{
     previousScore: number;
     newScore: number;
@@ -62,7 +64,7 @@ export default function ReviewFlow({
     improvedTopics: string[];
   } | null>(null);
 
-  const stepNumbers: Record<Step, number> = { write: 1, questions: 2, thankyou: 3 };
+  const stepNumbers: Record<Step, number> = { write: 1, questions: 2, photos: 3, thankyou: 4 };
   const currentStep = stepNumbers[step];
 
   // Notify parent whether a review is in progress
@@ -141,7 +143,7 @@ export default function ReviewFlow({
     ]);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (finalPhotos: AnalyzedPhoto[] = photos) => {
     try {
       const res = await fetch("/api/process-answer", {
         method: "POST",
@@ -158,6 +160,13 @@ export default function ReviewFlow({
           overallRating,
           reviewText,
           travelerName: "Demo User",
+          photos: finalPhotos.map(({ dataUrl, topicId, topicLabel, sentiment, label }) => ({
+            dataUrl,
+            topicId,
+            topicLabel,
+            sentiment,
+            label,
+          })),
         }),
       });
       const data = await res.json();
@@ -193,7 +202,7 @@ export default function ReviewFlow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {["Share Your Experience", "Smart Follow-ups", "Impact"].map((label, i) => (
+          {["Share Your Experience", "Smart Follow-ups", "Add Photos", "Impact"].map((label, i) => (
             <div key={i} className="flex items-center gap-2 flex-1">
               <div className="flex flex-col items-center gap-1">
                 <div
@@ -209,7 +218,7 @@ export default function ReviewFlow({
                   {label}
                 </span>
               </div>
-              {i < 2 && (
+              {i < 3 && (
                 <div
                   className={`h-px flex-1 transition-all duration-500 ${
                     i + 1 < currentStep ? "bg-[#ff6b35]" : "bg-white/10"
@@ -246,6 +255,14 @@ export default function ReviewFlow({
             questions={questions}
             answeredTopicIds={answeredTopicIds}
             onAnswer={handleAnswer}
+            onFinish={() => setStep("photos")}
+          />
+        )}
+
+        {step === "photos" && (
+          <PhotosStep
+            photos={photos}
+            onPhotosChange={setPhotos}
             onFinish={handleFinish}
           />
         )}
@@ -256,6 +273,7 @@ export default function ReviewFlow({
               accountId={accountId}
               reviewText={reviewText}
               answerCount={answers.length}
+              photoCount={photos.length}
               improvedTopics={scoreResult.improvedTopics}
             />
             
@@ -413,6 +431,42 @@ function WriteStep({
   );
 }
 
+// ─── Photos Step ────────────────────────────────────────────────────────────
+function PhotosStep({
+  photos,
+  onPhotosChange,
+  onFinish,
+}: {
+  photos: AnalyzedPhoto[];
+  onPhotosChange: (p: AnalyzedPhoto[]) => void;
+  onFinish: (photos: AnalyzedPhoto[]) => void;
+}) {
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div>
+        <h2 className="text-xl font-bold text-[#1a1a2e] mb-1">Add Photos</h2>
+        <p className="text-sm text-gray-500">
+          Optional — our AI will label each photo and use it to improve the hotel&apos;s knowledge score.
+        </p>
+      </div>
+
+      <PhotoUpload photos={photos} onChange={onPhotosChange} maxPhotos={10} />
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => onFinish(photos)}
+          disabled={photos.some(() => false)} // always enabled — photos are pre-analyzed
+          className="flex-1 py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, #ff6b35, #f59e0b)" }}
+        >
+          {photos.length > 0 ? `Submit with ${photos.length} photo${photos.length !== 1 ? "s" : ""}` : "Skip"}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Questions Step ─────────────────────────────────────────────────────────
 function QuestionsStep({
   questions,
@@ -458,7 +512,7 @@ function QuestionsStep({
         className="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
         style={{ background: "linear-gradient(135deg, #1a1a2e, #16213e)" }}
       >
-        See My Impact
+        Add Photos
         <ArrowRight className="w-4 h-4" />
       </button>
     </div>

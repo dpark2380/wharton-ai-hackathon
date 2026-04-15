@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { loadProperties, getReviewsForProperty } from "@/lib/data";
 import { analyzeProperty, invalidateAnalysisCache } from "@/lib/analysis";
 import { checkAnswerQuality } from "@/lib/quality";
-import { reviewStore, LiveReview, LiveAnswer } from "@/lib/store";
+import { reviewStore, LiveReview, LiveAnswer, LivePhoto } from "@/lib/store";
 import { generateHotelDisplayName } from "@/lib/utils";
+import { invalidateInsightsCache } from "@/lib/insights-cache";
 import { randomUUID } from "crypto";
 
 interface AnswerPayload {
@@ -15,7 +16,7 @@ interface AnswerPayload {
 
 export async function POST(request: Request) {
   try {
-    const { propertyId, answers, coveredTopicIds, overallRating, reviewText, travelerName } =
+    const { propertyId, answers, coveredTopicIds, overallRating, reviewText, travelerName, photos: rawPhotos } =
       await request.json() as {
         propertyId: string;
         answers: AnswerPayload[];
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
         overallRating?: number;
         reviewText?: string;
         travelerName?: string;
+        photos?: { dataUrl: string; topicId: string; topicLabel: string; sentiment: "positive" | "negative" | "neutral"; label: string }[];
       };
 
     if (!propertyId || !Array.isArray(answers)) {
@@ -48,6 +50,15 @@ export async function POST(request: Request) {
       type: a.type,
     }));
 
+    const livePhotos: LivePhoto[] = (rawPhotos ?? []).map((p) => ({
+      id: randomUUID(),
+      dataUrl: p.dataUrl,
+      topicId: p.topicId,
+      topicLabel: p.topicLabel,
+      sentiment: p.sentiment,
+      label: p.label,
+    }));
+
     const liveReview: LiveReview = {
       id: randomUUID(),
       propertyId,
@@ -56,13 +67,15 @@ export async function POST(request: Request) {
       reviewText: reviewText ?? "",
       coveredTopicIds: Array.isArray(coveredTopicIds) ? coveredTopicIds : [],
       answers: liveAnswers,
+      photos: livePhotos,
       travelerName: travelerName ?? "Anonymous",
     };
 
     reviewStore.addReview(liveReview);
 
-    // ── Invalidate cache so next analyzeProperty picks up the new review ─────
+    // ── Invalidate caches so next request picks up the new review ────────────
     invalidateAnalysisCache(propertyId);
+    invalidateInsightsCache(propertyId);
 
     // ── Compute new score (now includes the live review) ─────────────────────
     const reviewsAfter = getReviewsForProperty(propertyId);
@@ -72,7 +85,8 @@ export async function POST(request: Request) {
     const validAnswers = answers.filter((a) => checkAnswerQuality(a.answer, a.type));
     const answerTopicIds = validAnswers.map((a) => a.topicId);
     const reviewTopicIds = Array.isArray(coveredTopicIds) ? coveredTopicIds : [];
-    const improvedTopics = [...new Set([...answerTopicIds, ...reviewTopicIds])];
+    const photoTopicIds = livePhotos.map((p) => p.topicId);
+    const improvedTopics = [...new Set([...answerTopicIds, ...reviewTopicIds, ...photoTopicIds])];
 
     const newScore = analysisAfter.knowledgeHealthScore;
     const improvement = newScore - previousScore;
@@ -97,6 +111,12 @@ export async function POST(request: Request) {
       reviewText: liveReview.reviewText,
       overallRating: liveReview.overallRating,
       travelerName: liveReview.travelerName,
+      photos: livePhotos.map((p) => ({
+        dataUrl: p.dataUrl,
+        topicId: p.topicId,
+        label: p.label,
+        sentiment: p.sentiment,
+      })),
     });
 
     return NextResponse.json({

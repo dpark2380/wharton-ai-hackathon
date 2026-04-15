@@ -10,6 +10,15 @@
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface LivePhoto {
+  id: string;
+  dataUrl: string;            // data:image/...;base64,...
+  topicId: string;
+  topicLabel: string;
+  sentiment: "positive" | "negative" | "neutral";
+  label: string;              // short AI-generated label
+}
+
 export interface LiveReview {
   id: string;
   propertyId: string;
@@ -18,6 +27,7 @@ export interface LiveReview {
   reviewText: string;
   coveredTopicIds: string[];  // topics identified in the written review
   answers: LiveAnswer[];
+  photos: LivePhoto[];
   travelerName: string;       // simulated user
 }
 
@@ -40,6 +50,7 @@ export interface ReviewEvent {
   reviewText: string;
   overallRating: number;
   travelerName: string;
+  photos: { dataUrl: string; topicId: string; label: string; sentiment: string }[];
 }
 
 // Mirrors lib/data.ts Review shape — duplicated here to avoid a circular import
@@ -117,13 +128,19 @@ class ReviewStore {
 
   toReviewShape(live: LiveReview): ReviewShape {
     // Sub-ratings are 0 because we don't collect them in the review flow.
-    // Append follow-up answers to review_text so analyzeProperty can classify
-    // them as topic coverage — otherwise a review with no written text but with
-    // answers would contribute nothing to the health score.
+    // Append follow-up answers + photo labels to review_text so analyzeProperty
+    // can classify them as topic coverage with sentiment signal.
     const answerText = live.answers
       .map((a) => `${a.topicLabel}: ${a.answer}`)
       .join(". ");
-    const fullText = [live.reviewText, answerText].filter(Boolean).join(". ");
+    // Photos: prefix with sentiment word so keyword sentiment scoring picks it up
+    const photoText = live.photos
+      .map((p) => {
+        const prefix = p.sentiment === "positive" ? "excellent" : p.sentiment === "negative" ? "poor" : "";
+        return `${prefix} ${p.topicLabel}: ${p.label}`.trim();
+      })
+      .join(". ");
+    const fullText = [live.reviewText, answerText, photoText].filter(Boolean).join(". ");
 
     return {
       eg_property_id: live.propertyId,

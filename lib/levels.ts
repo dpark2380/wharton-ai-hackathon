@@ -144,7 +144,7 @@ export const LEVELS: Level[] = [
 
 // ── Points calculation ─────────────────────────────────────────────────────────
 
-export function calculatePointsEarned(reviewText: string, answerCount: number): {
+export function calculatePointsEarned(reviewText: string, answerCount: number, photoCount = 0): {
   total: number;
   breakdown: { label: string; points: number }[];
 } {
@@ -165,6 +165,11 @@ export function calculatePointsEarned(reviewText: string, answerCount: number): 
   // Follow-up answers
   if (answerCount > 0) {
     breakdown.push({ label: `${answerCount} follow-up answer${answerCount > 1 ? "s" : ""}`, points: answerCount * 3 });
+  }
+
+  // Photos — 5 pts each
+  if (photoCount > 0) {
+    breakdown.push({ label: `${photoCount} photo${photoCount > 1 ? "s" : ""} added`, points: photoCount * 5 });
   }
 
   const total = breakdown.reduce((s, b) => s + b.points, 0);

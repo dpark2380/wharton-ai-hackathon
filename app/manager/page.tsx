@@ -81,6 +81,7 @@ export default function ManagerPage() {
       ...event,
       submittedAt: event.submittedAt.toISOString(),
       answers: liveReview?.answers ?? [],
+      photos: event.photos ?? [],
     };
   });
 

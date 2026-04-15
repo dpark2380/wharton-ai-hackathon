@@ -10,6 +10,7 @@ interface ReviewerImpactProps {
   accountId: string;
   reviewText: string;
   answerCount: number;
+  photoCount: number;
   improvedTopics: string[];
 }
 
@@ -17,6 +18,7 @@ export default function ReviewerImpact({
   accountId,
   reviewText,
   answerCount,
+  photoCount,
   improvedTopics,
 }: ReviewerImpactProps) {
   const [mounted, setMounted] = useState(false);
@@ -24,7 +26,7 @@ export default function ReviewerImpact({
   const [newPoints, setNewPoints] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
-  const { total: pointsEarned, breakdown } = calculatePointsEarned(reviewText, answerCount);
+  const { total: pointsEarned, breakdown } = calculatePointsEarned(reviewText, answerCount, photoCount);
 
   useEffect(() => {
     const before = getStoredPoints(accountId);
@@ -149,6 +151,11 @@ export default function ReviewerImpact({
           </div>
         </div>
       )}
+
+      {/* Demo disclaimer */}
+      <p className="text-[10px] text-gray-400 text-center leading-relaxed px-2">
+        Score changes are amplified in this demo to make the impact visible. In production, a single review would typically shift the score by 1–3 points.
+      </p>
 
       {/* Exclusive deals (Level 3+) */}
       {currentLevel.level >= 3 && (
