@@ -315,14 +315,6 @@ function WriteStep({
   onSubmit: () => void;
 }) {
   const canSubmit = overallRating > 0 && !isAnalyzing;
-  const quality = reviewText.trim().length > 0 ? checkTextQuality(reviewText) : null;
-
-  // Visual quality indicator
-  const qualityBarWidth = quality ? Math.round(quality.score * 100) : 0;
-  const qualityBarColor =
-    quality && quality.score >= 0.7 ? "#22c55e"
-    : quality && quality.score >= 0.4 ? "#f59e0b"
-    : "#ef4444";
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -380,23 +372,6 @@ function WriteStep({
           }`}
         />
 
-        {/* Quality bar - live as they type */}
-        {reviewText.trim().length > 0 && (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Review quality</span>
-              <span className="text-xs font-medium" style={{ color: qualityBarColor }}>
-                {quality?.isValid ? (qualityBarWidth >= 70 ? "Great" : "OK") : "Needs work"}
-              </span>
-            </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${qualityBarWidth}%`, background: qualityBarColor }}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Error message */}
         {qualityError && (

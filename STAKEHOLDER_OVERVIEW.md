@@ -30,15 +30,36 @@ The Coverage Score is the headline number. It answers: *"How well does the curre
 
 It is not an average star rating. A hotel with a 9/10 rating but no reviews about accessibility still has a coverage gap. The Coverage Score captures this.
 
-The score is calculated across all 15 topic areas. Each topic gets its own sub-score based on three things:
+The score is calculated across all 15 topic areas. Each topic gets its own sub-score based on three things — and every single one of those three things is computed or calibrated by ML or AI:
 
-1. **How many reviews mention it** — but not a simple count. A single detailed, specific review that matches the hotel's own structured ratings is worth more than several vague one-liners. The system has learned what a "good" review looks like for each property.
+### 1. How many reviews cover this topic — quality-weighted by ML
 
-2. **How recent those reviews are** — a topic covered only in reviews from two years ago is treated as partially unknown. Guest experience changes.
+Before a review can count toward a topic, the system first has to know it covers that topic. This is done by a local ML model (MiniLM) that reads the meaning of the review, not just its keywords. A review saying *"couldn't sleep a wink"* counts toward noise even though the word "noise" never appears.
 
-3. **What the sentiment is** — for each topic, the system combines two signals: Expedia's own numeric sub-ratings (where they exist) and an AI reading of the review text itself. These two signals are blended together, with the blend ratio tuned separately for each hotel.
+Once the relevant reviews are identified, they are not counted equally. Each review is scored for quality between 0 and 1 by the ML pipeline. A review whose text sentiment strongly agrees with the hotel's own numeric sub-rating for that topic scores near 1. A review that praises cleanliness in words but submits a low cleanliness score scores near 0 — the internal contradiction signals it's unreliable. The blend between this consistency-based score and a simpler quality signal (based on review length and vocabulary) is itself a value the system has learned separately for each hotel.
 
-The 15 topic scores are then combined into the single Coverage Score. Topics that guests at *this particular hotel* tend to care about most get weighted more heavily.
+Finally, rather than using a fixed rule like "10 reviews = fully covered," the system has learned — per hotel, per topic — the point at which adding more reviews stops meaningfully changing the picture. A busy city hotel might need 20 reviews on a topic before the signal stabilises; a small boutique property might stabilise at 5. This threshold is detected automatically by watching how the running average shifts as reviews accumulate.
+
+### 2. How recent those reviews are
+
+A topic last mentioned two years ago is treated as partially unknown regardless of how many old reviews exist. Guest experience changes — a pool can be renovated, a chef can leave, a new management team can transform service. This component needs no ML; it is a straightforward time decay. It is included because recency is genuinely informative and balances the system against over-relying on historical data.
+
+### 3. What the sentiment is — hybrid of structured data and local ML
+
+For each topic the sentiment signal combines two sources:
+
+- **Expedia's own numeric sub-ratings** — for 9 of the 15 topics, Expedia collects a direct numeric score per review (e.g. a cleanliness score, a location score). This is a clean, structured signal.
+- **ML-derived text sentiment** — a two-model local pipeline reads the relevant sentences of each review and classifies them as positive or negative with a confidence score. This uses DistilBERT, a model trained on a large sentiment dataset, which handles negation and context that simple keyword counting cannot.
+
+These two signals are blended together. The blend ratio — how much to trust the written text versus the numeric rating — is learned separately for each hotel by finding the combination that best matches actual overall guest satisfaction. For 6 topics (food, WiFi, parking, noise, spa, accessibility) Expedia provides no numeric sub-rating, so the sentiment score comes entirely from the ML text analysis.
+
+### Combining the 15 topic scores
+
+The 15 topic scores are combined into the single Coverage Score. This is not a simple average — each topic is weighted by how strongly it predicts guest satisfaction *at this specific hotel*. This relationship is learned from the historical review data using a statistical model that measures the correlation between each topic's sentiment and the hotel's overall ratings. At a business hotel, WiFi coverage might carry twice the weight of spa coverage. At a resort, the reverse might be true. The weights are discovered from the data, not set by hand.
+
+---
+
+**In summary: every parameter in the Coverage Score formula was either produced by ML or learned from data.** The ML models decide which reviews count, how much each review is worth, what the sentiment of each review is, when a topic is "saturated," and how much each topic matters. The formula itself has no hard-coded numbers beyond sensible defaults that only apply when a hotel has too little data to learn from.
 
 ---
 

@@ -439,21 +439,158 @@ ON MANAGER TOPIC PANEL OPEN
 
 ---
 
-## 9. Guest Review Flow
+## 9. Guest Review Flow — Full Technical Walkthrough
 
-1. Guest visits `/review?propertyId=...`
-2. Writes a free-text review (voice input also supported via Web Speech API)
-3. System classifies the review with MiniLM to identify covered topics
-4. POST `/api/generate-questions` → GPT-4o-mini generates 2 follow-up questions for uncovered gaps
-5. Guest answers the questions and optionally uploads photos
-6. Each photo → POST `/api/analyze-photo` → GPT-4o-mini vision returns topic + sentiment + caption
-7. POST `/api/process-answer`:
-   - Review stored in memory
-   - MiniLM classification runs fire-and-forget to populate the Tier 2 cache
-   - All analysis caches invalidated
-   - `analyzeProperty()` recomputes with the new review
-   - SSE event pushed to all open manager dashboards
-8. Guest is redirected to `/review/[id]` showing a `BeforeAfterScore` with the Coverage Score change
+The guest flow is a 4-step wizard (`components/ReviewFlow.tsx`) rendered at `/review/[id]`. The steps are: **Share Your Experience → Smart Follow-ups → Add Photos → Impact**. Each step is described in full below.
+
+---
+
+### Step 1 — Share Your Experience
+
+The guest sees a star rating widget (1–5 required) and an optional free-text box. Voice input is also supported via the Web Speech API (`components/VoiceInput.tsx`, loaded client-side only to avoid SSR hydration issues).
+
+**Client-side quality gate**
+When the guest clicks Continue with text present, `checkTextQuality(reviewText)` runs synchronously in the browser (`lib/quality.ts`). This checks review length, vocabulary richness, and content specificity. If the review fails the threshold it displays an inline error and blocks progression — no network call is made yet.
+
+**Topic classification: which gaps does this review already cover?**
+If the text passes the quality gate, the client POSTs to `/api/analyze-review` with the review text. This route runs MiniLM (Tier 2 embedding-based classification) to identify which of the 15 topics the review already covers. The result — an array of topic IDs — is called `coveredTopics` and is passed to the next step. This prevents asking the guest about topics they already discussed.
+
+If the guest submitted only a star rating with no text, `coveredTopics` is an empty array and the question generation receives no pre-coverage signal.
+
+**Follow-up question generation**
+The client POSTs to `/api/generate-questions` with `{ propertyId, coveredTopics, reviewText }`.
+
+The server:
+1. Re-runs `checkTextQuality` as a server-side safety net (rejects with HTTP 422 if text is low quality — the client should have caught this, but the server validates independently)
+2. Calls `analyzeProperty()` to get the current topic gap list for this hotel
+3. Filters topics to those that are: relevant to this property, have a gap (`high`, `medium`, or `low`), and are NOT already in `coveredTopics`
+4. Sorts the remaining gaps by severity (`high` first, then `medium`, then `low`; ties broken randomly to add variety)
+5. Checks `getActivePromptsForProperty()` for any manager-set custom prompts (managers can manually flag topics they want guest feedback on)
+6. Passes the gap list + review text + active prompts to `generateFollowUpQuestions()` → GPT-4o-mini
+
+GPT receives the hotel context, the guest's review text, and the ordered gap list. It returns exactly **2 questions**, each with:
+- `question` — the question text (phrased contextually relative to the review)
+- `topicId` — which of the 15 topics this question addresses
+- `type` — one of `yes_no`, `text`, or `multiple_choice` (GPT chooses the most appropriate format)
+- `options` — if `multiple_choice`, the answer choices
+
+The presence of `reviewText` in the prompt is significant: GPT uses it to phrase follow-up questions that feel like a continuation of the conversation rather than a generic survey. *"You mentioned enjoying the location — did you also get a chance to use the spa?"* vs *"Did you use the spa?"*
+
+---
+
+### Step 2 — Smart Follow-ups
+
+The two generated questions are displayed as interactive cards (`components/FollowUpQuestion.tsx`). Each card adapts its UI to the question type:
+- `yes_no` → two large tap targets (Yes / No)
+- `multiple_choice` → a list of option buttons
+- `text` → a text input
+
+Answers are stored client-side in an `answers[]` array as `{ topicId, topicLabel, answer, type }`. No network call happens here — answers are batched and submitted with everything else at the end.
+
+---
+
+### Step 3 — Add Photos
+
+The guest can upload up to 10 photos. Each photo is immediately sent to `/api/analyze-photo` as a base64 data URL the moment it is selected (`components/PhotoUpload.tsx`). GPT-4o-mini vision processes each photo and returns:
+- `topicId` + `topicLabel` — which topic the photo is evidence of
+- `sentiment` — `positive`, `negative`, or `neutral`
+- `label` — a short caption describing the photo
+
+Photos that fail analysis are quietly dropped. Successfully analysed photos are held in local state as `AnalyzedPhoto[]` and displayed with their AI-generated captions before the guest proceeds.
+
+This step is optional — the guest can click Skip without uploading anything.
+
+---
+
+### Step 4 — Submission and Score Update
+
+When the guest clicks Submit, the client POSTs to `/api/process-answer` with the complete payload:
+
+```
+{
+  propertyId,
+  overallRating,
+  reviewText,
+  coveredTopicIds,          // from Step 1 MiniLM classification
+  answers[],                // from Step 2 follow-up responses
+  photos[]                  // from Step 3 GPT-analysed photos
+}
+```
+
+The server executes the following sequence:
+
+**1. Snapshot the score before**
+`analyzeProperty()` is called on the existing reviews to record `previousScore`.
+
+**2. Store the review**
+A `LiveReview` object is written to `reviewStore` (the `globalThis` in-memory store). This includes the star rating, review text, topic IDs, follow-up answers, and photo metadata. From this point on, `getReviewsForProperty()` returns this review merged with the historical CSV data.
+
+**3. Classify review text with MiniLM (fire-and-forget)**
+If the review contained text, `classifyTextML()` is called asynchronously without awaiting it. When the embedding classification completes, the result is written to `liveClassificationCache` (keyed by `sha256(text)[0..16]`). This upgrades the topic assignment for this review from keyword fallback (Tier 3) to full embedding-based classification (Tier 2) on the next analysis pass.
+
+**4. Invalidate all caches**
+Four caches are invalidated for this property:
+- `invalidateAnalysisCache(propertyId)` — forces `analyzeProperty()` to recompute
+- `invalidateInsightsCache(propertyId)` — GPT topic summaries are now stale
+- `invalidateMLCache(propertyId)` — ML analysis tab results are stale
+- `invalidateAbsaCache(propertyId)` — ABSA sentiment scores are stale (new review changes the aggregate)
+
+**5. Recompute the score**
+`analyzeProperty()` runs again on the updated review set (now including the new review). This produces `newScore`.
+
+**6. Determine which topics improved**
+The union of three sets is computed:
+- Topics covered by the free-text review (`coveredTopicIds` from MiniLM)
+- Topics addressed by follow-up answers that passed `checkAnswerQuality()`
+- Topics identified in uploaded photos
+
+These become `improvedTopics` — the topic IDs reported back to the guest and pushed to the manager.
+
+**7. Push SSE event to manager dashboard**
+`reviewStore.pushEvent()` broadcasts a live event to all open manager dashboards via the SSE endpoint (`/api/events`). The event includes the guest's name, review text, star rating, photo metadata, `previousScore`, `newScore`, and `improvement`. The manager's live feed shows this in real time without polling.
+
+**8. Return score delta to the client**
+The API responds with `{ previousScore, newScore, improvement, improvedTopics }`. The client transitions to Step 4.
+
+---
+
+### Step 4 — Impact (Reviewer Points and Levels)
+
+The final screen renders `components/ReviewerImpact.tsx`, which shows the guest what their contribution achieved.
+
+**Points calculation** (`lib/levels.ts` → `calculatePointsEarned()`):
+
+| Contribution | Points |
+|---|---|
+| Star rating (always) | +1 |
+| Written review (any length) | +10 |
+| Detailed review (200+ characters) | +15 (replaces the +10) |
+| Each follow-up answer | +3 |
+| Each photo uploaded | +5 |
+
+**Level system**
+Points accumulate in `localStorage` (keyed by `accountId`) across sessions. There are 10 levels:
+
+| Level | Name | Points threshold |
+|---|---|---|
+| 1 | Explorer | 0 |
+| 2 | Insider | 15 |
+| 3 | Local Expert | 75 |
+| 4 | Trusted Guide | 250 |
+| 5 | Platinum Guide | 500 |
+| 6 | Elite Guide | 1,500 |
+| 7 | Master Guide | 5,000 |
+| 8 | Hall of Fame | 15,000 |
+| 9 | Legend | 50,000 |
+| 10 | Icon | 100,000 |
+
+The component reads the previous point total before adding the new points, then compares the resulting level to determine whether to show a level-up animation.
+
+**Perks**
+Each level unlocks perks shown in the UI: member rates (Level 2+), flash sale early access (Level 3+, with the advance window growing at higher levels), deal alerts, priority support, percentage discounts on all bookings, airport lounge access, and complimentary stays at the highest levels.
+
+**Exclusive deals**
+Guests at Level 3 and above are shown a curated list of time-limited hotel deals available earlier to them than to the general public. The advance window matches the level: 24 hours (Level 3), 48 hours (Level 4), 72 hours (Level 5+).
 
 ---
 
