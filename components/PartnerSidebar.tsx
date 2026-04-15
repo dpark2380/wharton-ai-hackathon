@@ -55,8 +55,8 @@ export default function PartnerSidebar({ propertyId, propertyName, city, country
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-        <button onClick={handleSignOut} className="block">
-          <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" />
+        <button onClick={handleSignOut} className="block bg-white rounded-lg px-2 py-1">
+          <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-8 w-auto" />
         </button>
       </div>
 

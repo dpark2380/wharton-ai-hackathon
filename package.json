@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "analyze-topics": "npx tsx scripts/analyze-topics.ts",
     "classify-topics": "npx tsx scripts/classify-topics-ai.ts",
     "analyze-trends": "npx tsx scripts/analyze-sentiment-trends.ts",
