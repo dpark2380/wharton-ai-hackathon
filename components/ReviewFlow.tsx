@@ -7,6 +7,9 @@ import FollowUpQuestionCard, { FollowUpQuestion } from "./FollowUpQuestion";
 import ReviewerImpact from "./ReviewerImpact";
 import PhotoUpload, { AnalyzedPhoto } from "./PhotoUpload";
 import { checkTextQuality } from "@/lib/quality";
+import { DEMO_ACCOUNTS } from "@/lib/accounts";
+
+const TRAVELER_KEY = "awm_account";
 
 // SSR: false prevents hydration mismatch from SpeechRecognition feature detection
 const VoiceInput = dynamic(() => import("./VoiceInput"), {
@@ -46,6 +49,7 @@ export default function ReviewFlow({
   onDirtyChange,
   accountId = "guest",
 }: ReviewFlowProps) {
+  const [travelerDisplayName, setTravelerDisplayName] = useState("Demo User");
   const [step, setStep] = useState<Step>("write");
   const [overallRating, setOverallRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -62,6 +66,15 @@ export default function ReviewFlow({
     improvement: number;
     improvedTopics: string[];
   } | null>(null);
+
+  // Resolve traveler display name from localStorage on mount
+  useEffect(() => {
+    const storedId = localStorage.getItem(TRAVELER_KEY);
+    if (storedId) {
+      const found = DEMO_ACCOUNTS.find((a) => a.id === storedId);
+      if (found) setTravelerDisplayName(found.name);
+    }
+  }, []);
 
   const stepNumbers: Record<Step, number> = { write: 1, questions: 2, photos: 3, thankyou: 4 };
   const currentStep = stepNumbers[step];
@@ -158,7 +171,7 @@ export default function ReviewFlow({
           coveredTopicIds,
           overallRating,
           reviewText,
-          travelerName: "Demo User",
+          travelerName: travelerDisplayName,
           photos: finalPhotos.map(({ dataUrl, topicId, topicLabel, sentiment, label }) => ({
             dataUrl,
             topicId,
@@ -185,6 +198,11 @@ export default function ReviewFlow({
         improvement: answers.length * 4,
         improvedTopics: answers.map((a) => a.topicLabel),
       });
+    }
+    // Mark review done for this session only (sessionStorage clears on tab close)
+    const storedId = localStorage.getItem(TRAVELER_KEY);
+    if (storedId) {
+      sessionStorage.setItem(`awm_reviewed_${storedId}_${propertyId}`, "1");
     }
     setStep("thankyou");
   };

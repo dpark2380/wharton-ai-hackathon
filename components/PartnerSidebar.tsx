@@ -54,9 +54,9 @@ export default function PartnerSidebar({ propertyId, propertyName, city, country
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-        <button onClick={handleSignOut} className="block bg-white rounded-lg px-2 py-1">
+        <Link href="/" className="block bg-white rounded-lg px-2 py-1">
           <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-8 w-auto" />
-        </button>
+        </Link>
       </div>
 
       {/* Property */}
@@ -127,9 +127,9 @@ export default function PartnerSidebar({ propertyId, propertyName, city, country
       <header
         className="lg:hidden sticky top-0 z-40 h-14 flex items-center justify-between px-4 overflow-hidden bg-white border-b border-[#E4E7EF]"
       >
-        <button onClick={handleSignOut} className="block">
+        <Link href="/">
           <img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" />
-        </button>
+        </Link>
         <button onClick={() => setOpen(true)} className="text-gray-400 hover:text-gray-700">
           <Menu className="w-5 h-5" />
         </button>
