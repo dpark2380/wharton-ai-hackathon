@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  MapPin, ArrowRight, LogOut, ChevronRight,
+  MapPin, ArrowRight, LogOut, ChevronRight, BookOpen,
 } from "lucide-react";
 import { DEMO_ACCOUNTS, TIER_COLORS, DemoAccount } from "@/lib/accounts";
 import { initAccountPoints } from "@/lib/levels";
@@ -127,6 +127,13 @@ function LoggedInView({
                   Search manually
                 </button>
               </p>
+              <Link
+                href="/passport"
+                className="mt-3 w-full py-3 rounded-xl border border-[#E4E7EF] text-sm font-semibold text-[#003580] flex items-center justify-center gap-2 hover:bg-[#F5F7FA] transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
+                View my Traveller Passport
+              </Link>
             </div>
           </div>
         ) : (

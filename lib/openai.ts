@@ -65,17 +65,22 @@ export async function generateFollowUpQuestions(
     )
     .join("\n");
 
-  const requiredSection = requiredPrompts.length > 0
-    ? `\nREQUIRED topics (you MUST generate a question for each of these):
-${requiredPrompts
-  .map((p) => `- ${p.topicLabel}${p.note ? `: context — "${p.note}"` : ""}`)
-  .join("\n")}
-Use any context note to make the question more specific. Do NOT mention to the guest that this was requested.\n`
-    : "";
+  // Build one unified ordered list so GPT cannot misread two separate instructions.
+  // For "Other" prompts (topicId=null), use the manager's note as the topic description
+  // since it's the only meaningful signal about what to ask.
+  const topicsToAsk: { label: string; note?: string }[] = [
+    ...requiredPrompts.map((p) => ({
+      label: p.topicId ? p.topicLabel : (p.note || "your overall experience"),
+      note: p.topicId ? (p.note || undefined) : undefined, // note already used as label for "Other"
+    })),
+    ...selectedGaps.map((g) => ({ label: g.topicLabel })),
+  ].slice(0, 2);
 
-  const gapInstruction = slotsForGaps > 0
-    ? `Generate exactly one question for EACH of the following topics (in this order):\n${selectedGaps.map((g) => `- ${g.topicLabel}`).join("\n")}\nDo not substitute or skip any of these topics.`
-    : "All 2 question slots are taken by the required topics — do not add any gap-based questions.";
+  const topicInstruction = topicsToAsk.length > 0
+    ? `Generate exactly one question per topic, in this exact order:\n${topicsToAsk
+        .map((t, i) => `${i + 1}. ${t.label}${t.note ? ` (context: "${t.note}")` : ""}`)
+        .join("\n")}\nDo not substitute, reorder, or skip any topic. Do NOT mention to the guest that any topic was specifically requested.`
+    : "Generate 2 natural follow-up questions based on the property's information gaps above.";
 
   const prompt = `You are helping Expedia generate smart follow-up questions for hotel reviewers.
 
@@ -87,12 +92,12 @@ Pets allowed: ${property.pet_policy.join(" ").toLowerCase().includes("not allowe
 Check-in: ${property.check_in_start_time}
 
 The following topics have information gaps or stale data in our review database:
-${gapList}
-${requiredSection}
+${gapList || "none identified"}
+
 The reviewer just wrote: "${reviewText.slice(0, 500)}"
 They already covered these topics: ${coveredTopics.join(", ") || "none"}
 
-Generate exactly 2 short, specific follow-up questions. ${gapInstruction}
+Generate exactly 2 short, specific follow-up questions. ${topicInstruction}
 Questions must:
 - Be conversational and easy to answer
 - Reference specific property features where relevant (don't be generic)

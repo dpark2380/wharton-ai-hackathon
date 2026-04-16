@@ -138,12 +138,18 @@ export default function ManagerPromptSettings({ propertyId, initialPrompts }: Pr
               {/* Note */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Context note <span className="font-normal normal-case text-gray-400">(optional — helps generate a more specific question)</span>
+                  {prompt.topicId === null
+                    ? <>What to ask about <span className="font-normal normal-case text-gray-400">(required — describe the topic, e.g. &quot;our new rooftop bar&quot;)</span></>
+                    : <>Context note <span className="font-normal normal-case text-gray-400">(optional — helps generate a more specific question)</span></>
+                  }
                 </label>
                 <textarea
                   value={prompt.note}
                   onChange={(e) => updatePrompt(prompt.id, { note: e.target.value })}
-                  placeholder={`e.g. "We just renovated all bathrooms last month"`}
+                  placeholder={prompt.topicId === null
+                    ? `e.g. "our new rooftop bar" or "the shuttle service to the airport"`
+                    : `e.g. "We just renovated all bathrooms last month"`
+                  }
                   rows={2}
                   className="w-full text-sm border border-[#E4E7EF] rounded-xl px-3 py-2 bg-white text-[#1E243A] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#006FCF]/30 resize-none"
                 />
