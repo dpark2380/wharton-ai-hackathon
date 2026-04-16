@@ -243,7 +243,7 @@ export default function FollowUpQuestionCard({
               className="text-xs px-1.5 py-0.5 rounded-full font-medium"
               style={{ background: priorityColor + "20", color: priorityColor }}
             >
-              {question.priority} priority
+              {question.priority === "high" ? "Needs Your Input" : question.priority === "medium" ? "Needs Update" : question.priority === "low" ? "Could use more feedback" : "Well covered"}
             </span>
           </div>
           <p className="text-sm font-semibold text-[#1a1a2e] leading-snug">{question.question}</p>

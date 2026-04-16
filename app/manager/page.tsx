@@ -77,40 +77,36 @@ function LoggedInSplash({
 
 function LoginPage({ onSelect }: { onSelect: (a: ManagerAccount) => void }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(160deg, #001f4d 0%, #003580 45%, #005bb5 100%)" }}
+    >
       {/* Header */}
-      <header className="h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
-        <div className="flex items-center gap-2">
-          <Link href="/manager"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
+      <header className="absolute top-0 left-0 right-0 z-10 h-14 px-6 flex items-center justify-between">
+        <div className="bg-white rounded-lg px-2 py-1">
+          <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-8 w-auto" /></Link>
         </div>
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
-        >
+        <Link href="/" className="text-xs text-white/50 hover:text-white transition-colors">
           ← Guest view
         </Link>
       </header>
 
-      {/* Hero */}
-      <div style={{ background: "linear-gradient(160deg, #003580 0%, #006FCF 100%)" }} className="px-6 py-14 text-center">
+      {/* Centered content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8 pt-20">
         <p className="text-[#FFC72C] text-xs font-bold uppercase tracking-widest mb-3">
           Expedia Partner Central
         </p>
-        <h1 className="text-3xl font-extrabold text-white mb-2 leading-tight">
+        <h1 className="text-3xl font-extrabold text-white mb-2 text-center leading-tight">
           Welcome back
         </h1>
-        <p className="text-white/70 text-sm max-w-xs mx-auto">
+        <p className="text-white/60 text-sm mb-8 text-center max-w-xs">
           Select your property to access your dashboard.
         </p>
-      </div>
 
-      {/* Account selector */}
-      <div className="flex-1 max-w-lg mx-auto w-full px-6 -mt-5 pb-16">
-        <div className="bg-white rounded-2xl shadow-lg border border-[#E4E7EF] overflow-hidden">
+        {/* Account selector card */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-lg">
           <div className="px-6 pt-5 pb-3 border-b border-[#E4E7EF]">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Sign in as
-            </p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sign in as</p>
           </div>
           <div className="divide-y divide-[#F5F7FA]">
             {MANAGER_ACCOUNTS.map((account) => (
@@ -119,15 +115,12 @@ function LoginPage({ onSelect }: { onSelect: (a: ManagerAccount) => void }) {
                 onClick={() => onSelect(account)}
                 className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#F5F7FA] transition-colors group text-left"
               >
-                {/* Avatar */}
                 <div
                   className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
                   style={{ background: "linear-gradient(135deg, #003580, #006FCF)" }}
                 >
                   {account.initial}
                 </div>
-
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#1E243A]">{account.name}</p>
                   <p className="text-xs text-gray-400">{account.title}</p>
@@ -139,22 +132,18 @@ function LoginPage({ onSelect }: { onSelect: (a: ManagerAccount) => void }) {
                     </div>
                   </div>
                 </div>
-
                 <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#003580] transition-colors flex-shrink-0" />
               </button>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Debug link */}
-        <div className="fixed bottom-5 right-5">
-          <Link
-            href="/debug"
-            className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors px-2 py-1 rounded border border-gray-200 bg-white"
-          >
-            debug
-          </Link>
-        </div>
+      {/* Debug link */}
+      <div className="fixed bottom-5 right-5">
+        <Link href="/debug" className="text-[10px] text-white/30 hover:text-white/60 transition-colors">
+          debug
+        </Link>
       </div>
     </div>
   );

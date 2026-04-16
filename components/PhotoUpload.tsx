@@ -37,10 +37,25 @@ type PhotoState =
 
 export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  // Track in-progress uploads separately from completed ones
   const [pending, setPending] = useState<{ id: string; dataUrl: string; state: PhotoState }[]>([]);
+  const [dragging, setDragging] = useState(false);
 
   const canAdd = photos.length + pending.filter((p) => p.state.status === "analyzing").length < maxPhotos;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (canAdd) setDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (canAdd) handleFiles(e.dataTransfer.files);
+  };
 
   const handleFiles = async (files: FileList | null) => {
     if (!files) return;
@@ -173,10 +188,19 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
           {canAdd && (
             <button
               onClick={() => inputRef.current?.click()}
-              className="h-36 rounded-xl border-2 border-dashed border-[#e5e0d8] flex flex-col items-center justify-center gap-2 hover:border-[#ff6b35] hover:bg-orange-50 transition-all group"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`h-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all group ${
+                dragging
+                  ? "border-[#ff6b35] bg-orange-50 scale-[1.01]"
+                  : "border-[#e5e0d8] hover:border-[#ff6b35] hover:bg-orange-50"
+              }`}
             >
-              <Plus className="w-6 h-6 text-gray-300 group-hover:text-[#ff6b35] transition-colors" />
-              <span className="text-xs text-gray-400 group-hover:text-[#ff6b35] transition-colors">Add photo</span>
+              <Plus className={`w-6 h-6 transition-colors ${dragging ? "text-[#ff6b35]" : "text-gray-300 group-hover:text-[#ff6b35]"}`} />
+              <span className={`text-xs transition-colors ${dragging ? "text-[#ff6b35]" : "text-gray-400 group-hover:text-[#ff6b35]"}`}>
+                {dragging ? "Drop to upload" : "Add photo"}
+              </span>
             </button>
           )}
         </div>
@@ -186,7 +210,14 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
       {allItems.length === 0 && (
         <button
           onClick={() => inputRef.current?.click()}
-          className="w-full py-10 rounded-2xl border-2 border-dashed border-[#e5e0d8] flex flex-col items-center justify-center gap-3 hover:border-[#ff6b35] hover:bg-orange-50 transition-all group"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`w-full py-10 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all group ${
+            dragging
+              ? "border-[#ff6b35] bg-orange-50 scale-[1.01]"
+              : "border-[#e5e0d8] hover:border-[#ff6b35] hover:bg-orange-50"
+          }`}
         >
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -195,8 +226,12 @@ export default function PhotoUpload({ photos, onChange, maxPhotos = 10 }: PhotoU
             <Camera className="w-6 h-6 text-[#ff6b35]" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-[#1a1a2e]">Upload photos</p>
-            <p className="text-xs text-gray-400 mt-0.5">Up to {maxPhotos} photos · max 8 MB each</p>
+            <p className="text-sm font-semibold text-[#1a1a2e]">
+              {dragging ? "Drop to upload" : "Upload photos"}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Drag and drop or click to select · up to {maxPhotos} photos · max 8 MB each
+            </p>
           </div>
         </button>
       )}

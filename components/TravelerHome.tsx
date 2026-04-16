@@ -162,33 +162,31 @@ function GuestLanding({
   onSelectAccount: (account: DemoAccount) => void;
 }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#F5F7FA" }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(160deg, #001f4d 0%, #003580 45%, #005bb5 100%)" }}
+    >
       {/* Header */}
-      <header className="sticky top-0 z-50 h-14 px-6 flex items-center justify-between overflow-hidden bg-white border-b border-[#E4E7EF]">
-        <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-10 w-auto" /></Link>
-        <Link
-          href="/manager"
-          className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
-        >
+      <header className="absolute top-0 left-0 right-0 z-10 h-14 px-6 flex items-center justify-between">
+        <div className="bg-white rounded-lg px-2 py-1">
+          <Link href="/"><img src="/Expedia-Logo.svg.png" alt="Expedia" className="h-8 w-auto" /></Link>
+        </div>
+        <Link href="/manager" className="text-xs text-white/50 hover:text-white transition-colors">
           Hotel Manager →
         </Link>
       </header>
 
-      {/* Hero */}
-      <div style={{ background: "linear-gradient(160deg, #003580 0%, #006FCF 100%)" }}>
-        <div className="max-w-xl mx-auto px-4 py-14 text-center">
-          <h1 className="text-3xl font-extrabold text-white leading-tight mb-3">
-            How was your stay?
-          </h1>
-          <p className="text-white/70 text-sm max-w-xs mx-auto leading-relaxed">
-            Sign in with your Expedia account and we&apos;ll find your recent booking automatically.
-          </p>
-        </div>
-      </div>
+      {/* Centered content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8 pt-20">
+        <h1 className="text-3xl font-extrabold text-white leading-tight mb-2 text-center">
+          How was your stay?
+        </h1>
+        <p className="text-white/60 text-sm mb-8 text-center max-w-xs leading-relaxed">
+          Sign in with your Expedia account and we&apos;ll find your recent booking automatically.
+        </p>
 
-      <div className="max-w-xl mx-auto w-full px-4 -mt-5 pb-16">
-        {/* Account picker */}
-        <div className="bg-white rounded-2xl shadow-md border border-[#E4E7EF] overflow-hidden">
+        {/* Account picker card */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-lg">
           <div className="px-5 pt-5 pb-3 border-b border-[#E4E7EF]">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sign in as</p>
           </div>
@@ -222,14 +220,13 @@ function GuestLanding({
             ))}
           </div>
         </div>
-
       </div>
 
       {/* Debug link */}
       <div className="fixed bottom-4 right-4 z-50">
         <Link
           href="/guest-debug"
-          className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors px-2 py-1 rounded border border-gray-200 bg-white shadow-sm"
+          className="text-[10px] text-white/30 hover:text-white/60 transition-colors"
         >
           debug
         </Link>

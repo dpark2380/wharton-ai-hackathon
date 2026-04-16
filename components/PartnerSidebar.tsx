@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Map, Lightbulb, MessageSquare,
-  BarChart3, TrendingUp, LogOut, ChevronLeft, Menu, X, Settings,
+  BarChart3, LogOut, ChevronLeft, Menu, X, Settings,
 } from "lucide-react";
 import { MANAGER_ACCOUNTS, MANAGER_STORAGE_KEY, type ManagerAccount } from "@/lib/manager-accounts";
 
@@ -15,7 +15,6 @@ const NAV = [
   { label: "Insights",      href: "/insights",   icon: Lightbulb },
   { label: "Reviews",       href: "/reviews",    icon: MessageSquare },
   { label: "Analytics",     href: "/analytics",  icon: BarChart3 },
-  { label: "Trends",        href: "/trends",     icon: TrendingUp },
   { label: "Settings",      href: "/settings",   icon: Settings },
 ];
 

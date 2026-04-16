@@ -53,8 +53,12 @@ export async function generateFollowUpQuestions(
 ): Promise<FollowUpQuestion[]> {
   const client = getClient();
 
-  const gapList = gaps
-    .slice(0, 5)
+  // Pre-select topics in code — GPT should write the question wording, not decide which topics
+  // to ask about. Without this, GPT ignores priority order at temperature > 0.
+  const slotsForGaps = Math.max(0, 2 - requiredPrompts.length);
+  const selectedGaps = gaps.slice(0, slotsForGaps);
+
+  const gapList = selectedGaps
     .map(
       (g) =>
         `- ${g.topicLabel}: ${g.reviewCount === 0 ? "never mentioned in any review" : `only ${g.reviewCount} reviews mention it, last was ${g.freshnessDays} days ago`}. Gap level: ${g.gap}`
@@ -62,16 +66,15 @@ export async function generateFollowUpQuestions(
     .join("\n");
 
   const requiredSection = requiredPrompts.length > 0
-    ? `\nREQUIRED topics (you MUST generate a question for each of these — use the available question slots for them first):
+    ? `\nREQUIRED topics (you MUST generate a question for each of these):
 ${requiredPrompts
   .map((p) => `- ${p.topicLabel}${p.note ? `: context — "${p.note}"` : ""}`)
   .join("\n")}
-Use any context note to make the question more specific (e.g. if the note says "we just renovated the bathrooms", ask specifically about the renovated bathrooms). Do NOT mention to the guest that this was requested.\n`
+Use any context note to make the question more specific. Do NOT mention to the guest that this was requested.\n`
     : "";
 
-  const slotsForGaps = Math.max(0, 2 - requiredPrompts.length);
   const gapInstruction = slotsForGaps > 0
-    ? `Fill the remaining ${slotsForGaps} question slot${slotsForGaps > 1 ? "s" : ""} from the highest-priority gap topics above.`
+    ? `Generate exactly one question for EACH of the following topics (in this order):\n${selectedGaps.map((g) => `- ${g.topicLabel}`).join("\n")}\nDo not substitute or skip any of these topics.`
     : "All 2 question slots are taken by the required topics — do not add any gap-based questions.";
 
   const prompt = `You are helping Expedia generate smart follow-up questions for hotel reviewers.
@@ -111,7 +114,7 @@ Respond ONLY with a valid JSON array (no markdown, no extra text):
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
+      temperature: 0.3,
       max_tokens: 600,
     });
 
