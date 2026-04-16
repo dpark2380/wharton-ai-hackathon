@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Star, MapPin, Award, Lock, Plane, Calendar, Moon, Hotel, MessageSquare } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Award, Lock, Plane, Calendar, Moon, Hotel, MessageSquare, Sparkles } from "lucide-react";
 import GlobalNav, { TRAVELER_SESSION_KEY } from "@/components/GlobalNav";
 import { DEMO_ACCOUNTS, TIER_COLORS, type DemoAccount } from "@/lib/accounts";
 import { PASSPORT_HISTORIES, type PassportStay } from "@/lib/passport-data";
@@ -40,6 +40,131 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "San Francisco": [-122.42, 37.77],
   "Monterey":      [-121.89, 36.60],
 };
+
+// ── Topic labels ──────────────────────────────────────────────────────────────
+
+const TOPIC_LABELS: Record<string, string> = {
+  cleanliness:      "Cleanliness",
+  location:         "Location",
+  food_breakfast:   "Food & Breakfast",
+  wifi_internet:    "WiFi",
+  parking:          "Parking",
+  pool_fitness:     "Pool & Fitness",
+  checkin_checkout: "Check-in",
+  noise:            "Noise",
+  room_comfort:     "Room Comfort",
+  bathroom:         "Bathroom",
+  staff_service:    "Staff & Service",
+  value:            "Value",
+  spa_wellness:     "Spa & Wellness",
+  accessibility:    "Accessibility",
+  eco_sustainability: "Eco",
+};
+
+// ── Country flag lookup ───────────────────────────────────────────────────────
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Japan": "🇯🇵", "Singapore": "🇸🇬", "Germany": "🇩🇪", "France": "🇫🇷",
+  "Italy": "🇮🇹", "United States": "🇺🇸", "Mexico": "🇲🇽", "United Kingdom": "🇬🇧",
+  "Australia": "🇦🇺", "Netherlands": "🇳🇱", "Portugal": "🇵🇹", "Thailand": "🇹🇭",
+  "Greece": "🇬🇷", "Czech Republic": "🇨🇿", "Indonesia": "🇮🇩", "Spain": "🇪🇸",
+};
+
+// ── Live review record (saved to sessionStorage by ReviewFlow) ────────────────
+
+interface LiveReviewRecord {
+  id: string;
+  propertyId: string;
+  hotelName: string;
+  city: string;
+  country: string;
+  rating: number;
+  reviewText: string;
+  topicIds: string[];
+  photoCount: number;
+  pointsEarned: number;
+  submittedAt: string;
+}
+
+function LiveReviewCard({ record }: { record: LiveReviewRecord }) {
+  const [expanded, setExpanded] = useState(false);
+  const MAX = 160;
+  const needsTruncate = record.reviewText.length > MAX;
+  const displayText = expanded || !needsTruncate
+    ? record.reviewText
+    : record.reviewText.slice(0, MAX) + "…";
+  const flag = COUNTRY_FLAGS[record.country] ?? "🏨";
+  const submittedDate = new Date(record.submittedAt).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+
+  return (
+    <div className="bg-white rounded-xl border border-[#003580]/20 p-4 hover:shadow-sm transition-all ring-1 ring-[#003580]/10">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-[#EFF6FF] border border-[#003580]/10 flex items-center justify-center text-xl flex-shrink-0 select-none">
+          {flag}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold text-gray-900 leading-tight">{record.hotelName}</p>
+                <span className="text-[9px] font-bold text-[#003580] bg-[#EFF6FF] px-1.5 py-0.5 rounded-full">NEW</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                <MapPin className="w-3 h-3 flex-shrink-0" />
+                <span>{record.city}, {record.country}</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className={`w-3 h-3 ${i < record.rating ? "fill-[#FFC72C] text-[#FFC72C]" : "fill-gray-200 text-gray-200"}`} />
+                ))}
+              </div>
+              <span className="text-[10px] font-semibold text-[#003580] bg-[#EFF6FF] px-1.5 py-0.5 rounded-full">
+                +{record.pointsEarned} pts
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+            <Calendar className="w-3 h-3" />
+            <span>Reviewed {submittedDate}</span>
+            {record.photoCount > 0 && (
+              <span className="ml-2">&middot; {record.photoCount} photo{record.photoCount !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+
+          {record.reviewText && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-600 leading-relaxed italic">"{displayText}"</p>
+              {needsTruncate && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="text-[10px] text-[#003580] font-medium mt-0.5 hover:underline"
+                >
+                  {expanded ? "Show less" : "Read more"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {record.topicIds.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {record.topicIds.slice(0, 5).map((t) => (
+                <span key={t} className="text-[10px] bg-[#EFF6FF] text-[#1D4ED8] px-2 py-0.5 rounded-full border border-[#BFDBFE]">
+                  {TOPIC_LABELS[t] ?? t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Lazy-load the map (avoids SSR issues with d3-geo) ─────────────────────────
 
@@ -163,6 +288,7 @@ export default function PassportPage() {
   const [account, setAccount] = useState<DemoAccount | null>(null);
   const [points, setPoints] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [liveReviews, setLiveReviews] = useState<LiveReviewRecord[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -172,6 +298,11 @@ export default function PassportPage() {
       if (found) {
         setAccount(found);
         setPoints(getStoredPoints(found.id) || found.startingPoints);
+        // Load any reviews submitted this session
+        const raw = sessionStorage.getItem(`awm_live_reviews_${found.id}`);
+        if (raw) {
+          try { setLiveReviews(JSON.parse(raw)); } catch { /* ignore */ }
+        }
       }
     }
   }, []);
@@ -218,16 +349,27 @@ export default function PassportPage() {
   const progress = progressToNextLevel(points);
   const tierStyle = TIER_COLORS[account.tier];
 
-  // Stats
+  // Stats — combine static history + live reviews submitted this session
   const totalNights = stays.reduce((s, h) => s + h.nights, 0);
-  const totalPhotos = stays.reduce((s, h) => s + h.photoCount, 0);
-  const hotelsVisited = stays.length;
-  const reviewsLeft = stays.filter((s) => s.reviewText.trim().length > 0).length;
+  const totalPhotos = stays.reduce((s, h) => s + h.photoCount, 0) + liveReviews.reduce((s, r) => s + r.photoCount, 0);
+  const hotelsVisited = stays.length + liveReviews.length;
+  const reviewsLeft = stays.filter((s) => s.reviewText.trim().length > 0).length + liveReviews.length;
 
-  // Map pins
-  const pins: CityPin[] = stays
-    .filter((s) => CITY_COORDS[s.city])
-    .map((s) => ({ city: s.city, country: s.country, flag: s.flag }));
+  // Map pins — include cities from live reviews too
+  const seenCities = new Set<string>();
+  const pins: CityPin[] = [];
+  for (const s of stays) {
+    if (CITY_COORDS[s.city] && !seenCities.has(s.city)) {
+      seenCities.add(s.city);
+      pins.push({ city: s.city, country: s.country, flag: s.flag });
+    }
+  }
+  for (const r of liveReviews) {
+    if (CITY_COORDS[r.city] && !seenCities.has(r.city)) {
+      seenCities.add(r.city);
+      pins.push({ city: r.city, country: r.country, flag: COUNTRY_FLAGS[r.country] ?? "🏨" });
+    }
+  }
 
   // Perks
   const unlockedLevels = LEVELS.filter((l) => l.level <= level.level);
@@ -412,7 +554,25 @@ export default function PassportPage() {
             <Star className="w-4 h-4 text-[#FFC72C]" />
             Review History
           </h2>
-          {stays.length === 0 ? (
+
+          {/* Live reviews from this session */}
+          {liveReviews.length > 0 && (
+            <div className="mb-3 space-y-3">
+              <p className="text-[10px] font-bold text-[#003580] uppercase tracking-widest flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Submitted this session
+              </p>
+              {liveReviews.map((r) => (
+                <LiveReviewCard key={r.id} record={r} />
+              ))}
+              {stays.length > 0 && (
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Past Stays</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {stays.length === 0 && liveReviews.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
               <p className="text-sm">No stays yet. Start exploring and reviewing!</p>
             </div>

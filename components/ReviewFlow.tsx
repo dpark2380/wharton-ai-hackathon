@@ -156,6 +156,7 @@ export default function ReviewFlow({
   };
 
   const handleFinish = async (finalPhotos: AnalyzedPhoto[] = photos) => {
+    let earnedPoints = 0;
     try {
       const res = await fetch("/api/process-answer", {
         method: "POST",
@@ -182,6 +183,7 @@ export default function ReviewFlow({
         }),
       });
       const data = await res.json();
+      earnedPoints = Math.round(10 + (data.improvedTopics?.length ?? 0) * 8 + finalPhotos.length * 3);
       setScoreResult({
         previousScore: data.previousScore,
         newScore: data.newScore,
@@ -192,6 +194,7 @@ export default function ReviewFlow({
       });
     } catch {
       // Graceful fallback - still show the result
+      earnedPoints = 10 + answers.length * 8 + finalPhotos.length * 3;
       setScoreResult({
         previousScore: currentHealthScore,
         newScore: Math.min(100, currentHealthScore + answers.length * 4),
@@ -199,11 +202,34 @@ export default function ReviewFlow({
         improvedTopics: answers.map((a) => a.topicLabel),
       });
     }
+
     // Mark review done for this session only (sessionStorage clears on tab close)
     const storedId = localStorage.getItem(TRAVELER_KEY);
     if (storedId) {
       sessionStorage.setItem(`awm_reviewed_${storedId}_${propertyId}`, "1");
+
+      // Persist review data so the passport page can display it
+      const allTopicIds = [...new Set([...coveredTopicIds, ...answers.map((a) => a.topicId)])];
+      const reviewRecord = {
+        id: `live-${propertyId}-${Date.now()}`,
+        propertyId,
+        hotelName: propertyName,
+        city,
+        country,
+        rating: overallRating,
+        reviewText,
+        topicIds: allTopicIds,
+        photoCount: finalPhotos.length,
+        pointsEarned: earnedPoints,
+        submittedAt: new Date().toISOString(),
+      };
+      const key = `awm_live_reviews_${storedId}`;
+      const existing: typeof reviewRecord[] = JSON.parse(sessionStorage.getItem(key) ?? "[]");
+      // Replace any prior review for the same property this session
+      const deduped = existing.filter((r) => r.propertyId !== propertyId);
+      sessionStorage.setItem(key, JSON.stringify([reviewRecord, ...deduped]));
     }
+
     setStep("thankyou");
   };
 

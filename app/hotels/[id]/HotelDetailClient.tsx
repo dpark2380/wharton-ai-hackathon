@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { MapPin, Star, ArrowLeft, ArrowRight, Clock, PawPrint, MessageSquare } from "lucide-react";
+import { useState, useMemo } from "react";
+import { MapPin, Star, ArrowLeft, ArrowRight, Clock, PawPrint, MessageSquare, ChevronDown } from "lucide-react";
 import GlobalNav from "@/components/GlobalNav";
+import { checkTextQuality } from "@/lib/quality";
 
 export interface ReviewItem {
   id: string;
@@ -179,15 +180,79 @@ function AmenityPill({ label }: { label: string }) {
   );
 }
 
+// ── Styled select helper ──────────────────────────────────────────────────────
+
+function FilterSelect({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:border-[#003580] cursor-pointer transition-colors"
+      >
+        {children}
+      </select>
+      <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+    </div>
+  );
+}
+
 interface HotelDetailClientProps {
   detail: PropertyDetail;
   reviews: ReviewItem[];
 }
 
 export default function HotelDetailClient({ detail, reviews }: HotelDetailClientProps) {
+  const [sortBy, setSortBy] = useState<"recent" | "highest" | "lowest">("recent");
+  const [topicFilter, setTopicFilter] = useState("all");
+  const [qualityFilter, setQualityFilter] = useState<"all" | "high" | "medium" | "low">("all");
+
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.starsOutOf5, 0) / reviews.length).toFixed(1)
     : null;
+
+  // Pre-compute quality scores once
+  const qualityScores = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of reviews) {
+      map.set(r.id, checkTextQuality(r.text).score);
+    }
+    return map;
+  }, [reviews]);
+
+  // Collect unique topics across all reviews
+  const allTopics = useMemo(
+    () => Array.from(new Set(reviews.flatMap((r) => r.topics))).sort(),
+    [reviews]
+  );
+
+  // Filter then sort
+  const displayed = useMemo(() => {
+    let result = reviews.filter((r) => {
+      if (topicFilter !== "all" && !r.topics.includes(topicFilter)) return false;
+      if (qualityFilter !== "all") {
+        const score = qualityScores.get(r.id) ?? 0;
+        if (qualityFilter === "high" && score < 0.7) return false;
+        if (qualityFilter === "medium" && (score < 0.4 || score >= 0.7)) return false;
+        if (qualityFilter === "low" && score >= 0.4) return false;
+      }
+      return true;
+    });
+
+    if (sortBy === "highest") result = [...result].sort((a, b) => b.starsOutOf5 - a.starsOutOf5);
+    else if (sortBy === "lowest") result = [...result].sort((a, b) => a.starsOutOf5 - b.starsOutOf5);
+    // "recent" = default server order (already most recent first)
+
+    return result;
+  }, [reviews, topicFilter, qualityFilter, sortBy, qualityScores]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -242,19 +307,60 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
 
           {/* LEFT: Reviews */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-gray-400" />
-                <h2 className="font-bold text-gray-900 text-base">
-                  Guest Reviews
-                  <span className="text-gray-400 font-normal text-sm ml-1.5">({detail.totalReviews})</span>
-                </h2>
+            {/* Header + filters */}
+            <div className="mb-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-gray-400" />
+                  <h2 className="font-bold text-gray-900 text-base">
+                    Guest Reviews
+                    <span className="text-gray-400 font-normal text-sm ml-1.5">
+                      ({displayed.length}{displayed.length !== reviews.length ? ` of ${reviews.length}` : ""})
+                    </span>
+                  </h2>
+                </div>
+                {avgRating && (
+                  <div className="flex items-center gap-1.5">
+                    <StarRow n={parseFloat(avgRating)} />
+                    <span className="text-sm font-bold text-gray-900">{avgRating}</span>
+                    <span className="text-xs text-gray-400">/ 5</span>
+                  </div>
+                )}
               </div>
-              {avgRating && (
-                <div className="flex items-center gap-1.5">
-                  <StarRow n={parseFloat(avgRating)} />
-                  <span className="text-sm font-bold text-gray-900">{avgRating}</span>
-                  <span className="text-xs text-gray-400">/ 5</span>
+
+              {/* Filter bar */}
+              {reviews.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <FilterSelect value={sortBy} onChange={(v) => setSortBy(v as typeof sortBy)}>
+                    <option value="recent">Most Recent</option>
+                    <option value="highest">Highest Rated</option>
+                    <option value="lowest">Lowest Rated</option>
+                  </FilterSelect>
+
+                  {allTopics.length > 0 && (
+                    <FilterSelect value={topicFilter} onChange={setTopicFilter}>
+                      <option value="all">All Topics</option>
+                      {allTopics.map((t) => (
+                        <option key={t} value={t}>{TOPIC_LABELS[t] ?? t}</option>
+                      ))}
+                    </FilterSelect>
+                  )}
+
+                  <FilterSelect value={qualityFilter} onChange={(v) => setQualityFilter(v as typeof qualityFilter)}>
+                    <option value="all">Any Quality</option>
+                    <option value="high">High Quality</option>
+                    <option value="medium">Medium Quality</option>
+                    <option value="low">Short / Low Detail</option>
+                  </FilterSelect>
+
+                  {(sortBy !== "recent" || topicFilter !== "all" || qualityFilter !== "all") && (
+                    <button
+                      onClick={() => { setSortBy("recent"); setTopicFilter("all"); setQualityFilter("all"); }}
+                      className="text-[11px] text-gray-400 hover:text-gray-600 underline transition-colors"
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -270,9 +376,19 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
                   Write a Review <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
+            ) : displayed.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
+                <p className="text-sm font-medium">No reviews match these filters</p>
+                <button
+                  onClick={() => { setSortBy("recent"); setTopicFilter("all"); setQualityFilter("all"); }}
+                  className="mt-2 text-sm text-[#003580] font-semibold hover:underline"
+                >
+                  Clear filters
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
-                {reviews.map((r) => (
+                {displayed.map((r) => (
                   <ReviewCard key={r.id} review={r} />
                 ))}
               </div>
