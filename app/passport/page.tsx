@@ -326,7 +326,7 @@ export default function PassportPage() {
           <div className="w-16 h-16 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
             <Plane className="w-8 h-8 text-[#003580]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Travel Passport</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Explorer Pass</h1>
           <p className="text-gray-500 text-sm mb-6">
             Sign in to see your travel history, reviewer status, and perks.
           </p>

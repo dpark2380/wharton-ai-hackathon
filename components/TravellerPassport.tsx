@@ -174,7 +174,7 @@ export default function TravellerPassport() {
                 Expedia
               </p>
               <p className="text-[10px] uppercase tracking-[0.15em] text-white/40 mt-0.5">
-                Traveller Passport
+                Explorer Pass
               </p>
             </div>
             <Globe className="w-5 h-5 text-white/20" />

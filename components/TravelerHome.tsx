@@ -132,7 +132,7 @@ function LoggedInView({
                 className="mt-3 w-full py-3 rounded-xl border border-[#E4E7EF] text-sm font-semibold text-[#003580] flex items-center justify-center gap-2 hover:bg-[#F5F7FA] transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
-                View my Traveller Passport
+                View my Explorer Pass
               </Link>
             </div>
           </div>
