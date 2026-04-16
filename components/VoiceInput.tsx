@@ -34,7 +34,7 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
     setError(null);
     const SR = getSpeechRecognition();
     if (!SR) {
-      setError("Voice input not supported in this browser.");
+      setError("Voice input not supported in this browser. Try Chrome or Edge.");
       return;
     }
 
@@ -58,14 +58,25 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      setError(`Voice input error: ${event.error}`);
+      if (event.error === "not-allowed") {
+        setError("Microphone access denied. Please allow mic access in your browser settings and try again.");
+      } else if (event.error === "no-speech") {
+        setError("No speech detected. Please try again.");
+      } else {
+        setError(`Voice error: ${event.error}`);
+      }
       setIsRecording(false);
     };
 
     recognition.onend = () => setIsRecording(false);
 
     recognitionRef.current = recognition;
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (e) {
+      setError("Could not start microphone. Make sure no other tab is using it.");
+      setIsRecording(false);
+    }
   };
 
   const stopRecording = () => {

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { CheckCircle2, MessageCircle } from "lucide-react";
+
+const VoiceInput = dynamic(() => import("./VoiceInput"), {
+  ssr: false,
+  loading: () => null,
+});
 
 export interface FollowUpQuestion {
   question: string;
@@ -110,13 +116,18 @@ function LikertInput({
       {/* Optional elaboration */}
       {chosen && (
         <div className="space-y-2 animate-fade-in">
-          <textarea
-            value={elaboration}
-            onChange={(e) => setElaboration(e.target.value)}
-            placeholder="Want to add more detail? (optional)"
-            rows={2}
-            className="w-full text-sm rounded-xl border border-[#e5e0d8] bg-white px-3 py-2 resize-none focus:outline-none focus:border-[#ff6b35] focus:ring-1 focus:ring-[#ff6b3533]"
-          />
+          <div className="flex gap-2 items-start">
+            <textarea
+              value={elaboration}
+              onChange={(e) => setElaboration(e.target.value)}
+              placeholder="Want to add more detail? (optional)"
+              rows={2}
+              className="flex-1 text-sm rounded-xl border border-[#e5e0d8] bg-white px-3 py-2 resize-none focus:outline-none focus:border-[#ff6b35] focus:ring-1 focus:ring-[#ff6b3533]"
+            />
+            <VoiceInput
+              onTranscript={(t) => setElaboration((prev) => (prev ? prev + " " + t : t))}
+            />
+          </div>
           <button
             onClick={handleDone}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-95"
@@ -168,13 +179,18 @@ function YesNoInput({ onSubmit }: { onSubmit: (answer: string) => void }) {
 
       {selected && (
         <div className="space-y-2 animate-fade-in">
-          <textarea
-            value={elaboration}
-            onChange={(e) => setElaboration(e.target.value)}
-            placeholder="Want to add more detail? (optional)"
-            rows={2}
-            className="w-full text-sm rounded-xl border border-[#e5e0d8] bg-white px-3 py-2 resize-none focus:outline-none focus:border-[#ff6b35] focus:ring-1 focus:ring-[#ff6b3533]"
-          />
+          <div className="flex gap-2 items-start">
+            <textarea
+              value={elaboration}
+              onChange={(e) => setElaboration(e.target.value)}
+              placeholder="Want to add more detail? (optional)"
+              rows={2}
+              className="flex-1 text-sm rounded-xl border border-[#e5e0d8] bg-white px-3 py-2 resize-none focus:outline-none focus:border-[#ff6b35] focus:ring-1 focus:ring-[#ff6b3533]"
+            />
+            <VoiceInput
+              onTranscript={(t) => setElaboration((prev) => (prev ? prev + " " + t : t))}
+            />
+          </div>
           <button
             onClick={handleDone}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-95"
