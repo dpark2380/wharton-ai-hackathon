@@ -12,7 +12,7 @@ import { MANAGER_ACCOUNTS, MANAGER_STORAGE_KEY, type ManagerAccount } from "@/li
 const NAV = [
   { label: "Overview",      href: "",           icon: LayoutDashboard },
   { label: "Topic Coverage",href: "/topics",     icon: Map },
-  { label: "Insights",      href: "/insights",   icon: Lightbulb },
+  { label: "AI Insights",   href: "/insights",   icon: Lightbulb },
   { label: "Reviews",       href: "/reviews",    icon: MessageSquare },
   { label: "Analytics",     href: "/analytics",  icon: BarChart3 },
 ];
