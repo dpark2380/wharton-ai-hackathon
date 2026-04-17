@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MapPin, Star, ArrowLeft, ArrowRight, Clock, PawPrint, MessageSquare, ChevronDown } from "lucide-react";
 import GlobalNav from "@/components/GlobalNav";
 import { checkTextQuality } from "@/lib/quality";
+import { DEMO_ACCOUNTS } from "@/lib/accounts";
+
+const TRAVELER_SESSION_KEY = "awm_account_session";
 
 export interface ReviewItem {
   id: string;
@@ -225,6 +228,16 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
   const [sortBy, setSortBy] = useState<"recent" | "highest" | "lowest">("recent");
   const [topicFilter, setTopicFilter] = useState("all");
   const [qualityFilter, setQualityFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [showReviewButton, setShowReviewButton] = useState(false);
+
+  useEffect(() => {
+    const sessionId = sessionStorage.getItem(TRAVELER_SESSION_KEY);
+    if (!sessionId) return;
+    const account = DEMO_ACCOUNTS.find((a) => a.id === sessionId);
+    if (!account || account.recentPropertyId !== detail.id) return;
+    const alreadyReviewed = sessionStorage.getItem(`awm_reviewed_${account.id}_${detail.id}`);
+    if (!alreadyReviewed) setShowReviewButton(true);
+  }, [detail.id]);
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.starsOutOf5, 0) / reviews.length).toFixed(1)
@@ -299,15 +312,17 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
               </div>
             </div>
 
-            {/* Review CTA */}
-            <Link
-              href={`/review/${detail.id}`}
-              className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-[#1E243A] hover:brightness-105 transition-all"
-              style={{ background: "#FFC72C" }}
-            >
-              Write a Review
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {/* Review CTA — only shown for the user's most recent stay, before they review */}
+            {showReviewButton && (
+              <Link
+                href={`/review/${detail.id}`}
+                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-[#1E243A] hover:brightness-105 transition-all"
+                style={{ background: "#FFC72C" }}
+              >
+                Write a Review
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -379,13 +394,15 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
             {reviews.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No reviews yet. Be the first!</p>
-                <Link
-                  href={`/review/${detail.id}`}
-                  className="mt-3 inline-flex items-center gap-1 text-sm text-[#003580] font-semibold hover:underline"
-                >
-                  Write a Review <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                <p className="text-sm">No reviews yet.</p>
+                {showReviewButton && (
+                  <Link
+                    href={`/review/${detail.id}`}
+                    className="mt-3 inline-flex items-center gap-1 text-sm text-[#003580] font-semibold hover:underline"
+                  >
+                    Write a Review <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             ) : displayed.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
