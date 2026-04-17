@@ -13,11 +13,11 @@ export default async function InsightsPage({ params }: Props) {
   if (!property) notFound();
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-extrabold text-[#1E243A]">AI Insights</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Plain-English summaries of what guests are saying, overall and by topic.
+          Plain-English summaries of what guests are saying, Overall and by Topic.
         </p>
       </div>
 

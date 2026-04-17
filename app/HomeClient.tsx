@@ -72,19 +72,12 @@ function HotelCard({ hotel, index }: { hotel: HotelSummary; index: number }) {
         className="h-32 flex items-end p-4 relative"
         style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
       >
-        {/* Star rating badge — only shown when a classification exists */}
-        {hotel.starRating > 0 && (
-          <div className="absolute top-3 right-3 bg-black/30 backdrop-blur-sm rounded-lg px-2 py-1">
-            <StarRow n={Math.round(hotel.starRating)} />
-          </div>
-        )}
         {/* Guest rating */}
         {hotel.guestRating > 0 && (
           <div className="bg-white/95 rounded-lg px-2.5 py-1.5 text-center">
             <p className="text-lg font-black leading-none" style={{ color: from }}>
               {hotel.guestRating.toFixed(1)}
             </p>
-            <p className="text-[9px] text-gray-500 font-medium leading-none mt-0.5">/10</p>
           </div>
         )}
       </div>

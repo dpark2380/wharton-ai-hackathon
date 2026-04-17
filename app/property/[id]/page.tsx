@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { loadProperties, getReviewsForProperty } from "@/lib/data";
+import { loadProperties, getReviewsForProperty, parseReviewDate, type Review } from "@/lib/data";
 import { reviewStore } from "@/lib/store";
-import { analyzeProperty, getCoverageColor, getCoverageLabel } from "@/lib/analysis";
+import { analyzeProperty } from "@/lib/analysis";
 import { generateHotelDisplayName } from "@/lib/utils";
 import { getPropertyAlerts } from "@/lib/sentiment-alerts";
 import { getLearnedWeights, learnPropertyWeights } from "@/lib/ml/continuous-learning";
 import CoverageScore from "@/components/CoverageScore";
 import {
   MapPin, Star, AlertTriangle, TrendingUp, MessageSquare,
-  Users, BarChart3, ChevronRight, Flame, CheckCircle2,
+  Users, Clock, ChevronRight, Flame,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -63,15 +63,42 @@ export default async function PropertyOverviewPage({ params }: Props) {
     property.star_rating
   );
   const location = [property.city, property.province, property.country].filter(Boolean).join(", ");
-  const healthColor = getCoverageColor(analysis.coverageScore);
-  const healthLabel = getCoverageLabel(analysis.coverageScore);
   const sentimentAlerts = getPropertyAlerts(id).filter((a) => a.severity !== "none");
   const liveReviews = reviewStore.getLiveReviewsForProperty(id);
   const highGaps = analysis.topGaps.filter((g) => g.gap === "high");
-  const wellCovered = analysis.topics.filter((t) => t.isRelevant && t.reviewCount >= 5 && !t.isStale).length;
+
+  // Review freshness: % of reviews from last 90 days
+  const NOW = new Date("2026-04-13");
+  const MS = 24 * 60 * 60 * 1000;
+  const freshCount = reviews.filter((r) => (NOW.getTime() - parseReviewDate(r.acquisition_date).getTime()) / MS <= 90).length;
+  const freshnessPct = reviews.length > 0 ? Math.round((freshCount / reviews.length) * 100) : 0;
+  const freshnessColor = freshnessPct >= 50 ? "#22c55e" : freshnessPct >= 20 ? "#f59e0b" : "#ef4444";
+
+  // Sentiment trend: last 30d positive % vs prior 30d
+  const isPos = (r: Review) => (r.rating?.overall ?? 0) >= 4;
+  const last30 = reviews.filter((r) => { const d = (NOW.getTime() - parseReviewDate(r.acquisition_date).getTime()) / MS; return d >= 0 && d <= 30; });
+  const prev30 = reviews.filter((r) => { const d = (NOW.getTime() - parseReviewDate(r.acquisition_date).getTime()) / MS; return d > 30 && d <= 60; });
+  const last30Pos = last30.length > 0 ? Math.round((last30.filter(isPos).length / last30.length) * 100) : null;
+  const prev30Pos = prev30.length > 0 ? Math.round((prev30.filter(isPos).length / prev30.length) * 100) : null;
+  let trendValue: string, trendSub: string, trendColor: string;
+  if (last30Pos !== null && prev30Pos !== null) {
+    const delta = last30Pos - prev30Pos;
+    trendValue = `${delta >= 0 ? "+" : ""}${delta}%`;
+    trendSub = `${prev30Pos}% → ${last30Pos}% positive`;
+    trendColor = delta >= 0 ? "#22c55e" : "#ef4444";
+  } else if (last30Pos !== null) {
+    trendValue = `${last30Pos}%`;
+    trendSub = "positive this month";
+    trendColor = last30Pos >= 70 ? "#22c55e" : "#f59e0b";
+  } else {
+    const allPos = reviews.length > 0 ? Math.round((reviews.filter(isPos).length / reviews.length) * 100) : 0;
+    trendValue = `${allPos}%`;
+    trendSub = "overall positive rate";
+    trendColor = allPos >= 70 ? "#22c55e" : allPos >= 50 ? "#f59e0b" : "#ef4444";
+  }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* Property hero card */}
       <div
         className="rounded-2xl p-6 text-white relative overflow-hidden"
@@ -165,18 +192,18 @@ export default async function PropertyOverviewPage({ params }: Props) {
           color="#003580"
         />
         <StatCard
-          icon={<BarChart3 className="w-4 h-4" />}
-          label="Health score"
-          value={analysis.coverageScore}
-          sub={healthLabel}
-          color={healthColor}
+          icon={<Clock className="w-4 h-4" />}
+          label="Review freshness"
+          value={`${freshnessPct}%`}
+          sub={`${freshCount} of ${reviews.length} in last 90d`}
+          color={freshnessColor}
         />
         <StatCard
-          icon={<CheckCircle2 className="w-4 h-4" />}
-          label="Topics covered"
-          value={wellCovered}
-          sub={`of ${analysis.topics.filter((t) => t.isRelevant).length} relevant`}
-          color="#22c55e"
+          icon={<TrendingUp className="w-4 h-4" />}
+          label="Sentiment trend"
+          value={trendValue}
+          sub={trendSub}
+          color={trendColor}
         />
         <StatCard
           icon={<MessageSquare className="w-4 h-4" />}
@@ -187,54 +214,6 @@ export default async function PropertyOverviewPage({ params }: Props) {
         />
       </div>
 
-      {/* Quick nav to sections */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {[
-          {
-            href: `/property/${id}/topics`,
-            label: "Topic Coverage",
-            desc: `${analysis.topGaps.length} gaps need attention`,
-            icon: <MapPin className="w-4 h-4" />,
-            color: "#003580",
-          },
-          {
-            href: `/property/${id}/insights`,
-            label: "AI Insights",
-            desc: "What guests are really saying",
-            icon: <TrendingUp className="w-4 h-4" />,
-            color: "#006FCF",
-          },
-          {
-            href: `/property/${id}/reviews`,
-            label: "Reviews Feed",
-            desc: `${liveReviews.length} new since last visit`,
-            icon: <MessageSquare className="w-4 h-4" />,
-            color: "#22c55e",
-          },
-          {
-            href: `/property/${id}/analytics`,
-            label: "Rating Analytics",
-            desc: "Score breakdowns by category",
-            icon: <BarChart3 className="w-4 h-4" />,
-            color: "#8b5cf6",
-          },
-        ].map(({ href, label, desc, icon, color }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center gap-4 bg-white rounded-2xl border border-[#E4E7EF] px-5 py-4 hover:border-[#003580] hover:shadow-sm transition-all group"
-          >
-            <div className="p-2.5 rounded-xl flex-shrink-0" style={{ background: `${color}15` }}>
-              <div style={{ color }}>{icon}</div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1E243A]">{label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#003580] transition-colors flex-shrink-0" />
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }

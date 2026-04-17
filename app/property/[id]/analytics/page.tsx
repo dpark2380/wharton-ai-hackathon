@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { loadProperties, getReviewsForProperty } from "@/lib/data";
 import RatingAnalytics from "@/components/RatingAnalytics";
-import AIUsagePieChart from "@/components/AIUsagePieChart";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export default async function AnalyticsPage({ params }: Props) {
   }));
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-extrabold text-[#1E243A]">Rating Analytics</h2>
         <p className="text-sm text-gray-500 mt-1">
@@ -32,9 +31,6 @@ export default async function AnalyticsPage({ params }: Props) {
         <RatingAnalytics reviews={ratingsData} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E4E7EF] p-6">
-        <AIUsagePieChart />
-      </div>
     </div>
   );
 }

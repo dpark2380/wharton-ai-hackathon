@@ -107,10 +107,12 @@ Questions must:
 - CRITICAL: Each question must cover ONE thing only, never combine two questions into one with "and" or "?" mid-sentence. If you need to ask about two aspects, pick the most important one.
 
 Choose the question type carefully:
-- Use "yes_no" for binary questions: "Did you use the pool?", "Was parking available?", "Did the room have a bathtub?"
-- Use "text" with scaleType "quality" for experience ratings: "How was the WiFi speed?", "How was the fitness center?", "How was the breakfast quality?"
+- Use "yes_no" ONLY when it is genuinely unknown whether the guest personally used something: "Did you use the pool?", "Did you try the hotel restaurant?"
+- NEVER use "yes_no" to ask whether a facility exists — if it's in the amenity list, assume it exists and ask about the quality instead
+- Use "text" with scaleType "quality" for experience ratings: "How was the fitness center?", "How was the WiFi speed?", "How was the breakfast quality?"
 - Use "text" with scaleType "agreement" for statement-based questions: "The staff were helpful and responsive", "The location was convenient for getting around"
 - Use "multiple_choice" only when a fixed set of options is clearly better than a scale
+- Default to "text" with "quality" for any topic gap — it gives the most useful data
 
 Respond ONLY with a valid JSON array (no markdown, no extra text):
 [{"question": "...", "type": "text|yes_no|multiple_choice", "scaleType": "quality|agreement", "options": ["..."] (only if multiple_choice), "topic": "human-readable topic name", "topicId": "one of: cleanliness|location|food_breakfast|wifi_internet|parking|pool_fitness|checkin_checkout|noise|room_comfort|bathroom|staff_service|value|spa_wellness|accessibility|eco_sustainability", "priority": "high|medium"}]`;

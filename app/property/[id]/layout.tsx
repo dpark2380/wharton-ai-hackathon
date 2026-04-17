@@ -38,26 +38,30 @@ export default async function PropertyLayout({ children, params }: Props) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar, desktop only (sidebar shows on desktop) */}
-        <div className="hidden lg:flex items-center justify-between px-8 py-4 bg-white border-b border-[#E4E7EF]">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest">Expedia Partner Central</p>
-            <h1 className="text-base font-bold text-[#1E243A] mt-0.5">{propertyName}</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/review/${id}`}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-[#1E243A] transition-all hover:opacity-80"
-              style={{ background: "#FFC72C" }}
-            >
-              Preview guest flow →
-            </Link>
-            <ManagerNotifications />
+        <div className="hidden lg:block bg-white border-b border-[#E4E7EF]">
+          <div className="max-w-5xl mx-auto px-8 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-widest">Expedia Partner Central</p>
+              <h1 className="text-lg font-bold text-[#1E243A] mt-0.5">{propertyName}</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link
+                href={`/review/${id}`}
+                className="text-sm font-semibold px-4 py-2 rounded-lg text-[#1E243A] transition-all hover:opacity-80"
+                style={{ background: "#FFC72C" }}
+              >
+                Preview guest flow →
+              </Link>
+              <ManagerNotifications />
+            </div>
           </div>
         </div>
 
         {/* Page content */}
-        <main className="flex-1 px-4 lg:px-8 py-6">
-          {children}
+        <main className="flex-1 py-8">
+          <div className="max-w-5xl mx-auto px-6 lg:px-10">
+            {children}
+          </div>
         </main>
 
         {/* Debug link */}

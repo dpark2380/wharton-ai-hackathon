@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { loadProperties } from "@/lib/data";
+import { loadProperties, getReviewsForProperty, parseReviewDate } from "@/lib/data";
 import { reviewStore } from "@/lib/store";
-import ManagerNotifications from "@/components/ManagerNotifications";
-import LiveReviewsFeed, { LiveReviewEvent } from "@/components/LiveReviewsFeed";
+import ReviewsPageClient, { HistoricalReview } from "@/components/ReviewsPageClient";
+import { LiveReviewEvent } from "@/components/LiveReviewsFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,17 @@ export default async function ReviewsPage({ params }: Props) {
   const property = properties.find((p) => p.eg_property_id === id);
   if (!property) notFound();
 
+  // All historical reviews
+  const rawReviews = getReviewsForProperty(id);
+  const allReviews: HistoricalReview[] = rawReviews.map((r, i) => ({
+    id: `hist-${i}`,
+    date: parseReviewDate(r.acquisition_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+    overallRating: r.rating?.overall ?? 0,
+    title: r.review_title ?? "",
+    text: r.review_text ?? "",
+  }));
+
+  // Live reviews (recent events)
   const recentEvents: LiveReviewEvent[] = reviewStore
     .getRecentEvents(50)
     .filter((e) => e.propertyId === id)
@@ -28,28 +39,5 @@ export default async function ReviewsPage({ params }: Props) {
       };
     });
 
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-[#1E243A]">Reviews</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Live guest submissions and real-time notifications.
-          </p>
-        </div>
-        <ManagerNotifications />
-      </div>
-
-      {recentEvents.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E4E7EF] p-10 text-center">
-          <p className="text-gray-400 text-sm">No live reviews submitted yet for this property.</p>
-          <p className="text-gray-300 text-xs mt-1">Reviews submitted via the guest flow will appear here in real time.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-[#E4E7EF] p-6">
-          <LiveReviewsFeed events={recentEvents} />
-        </div>
-      )}
-    </div>
-  );
+  return <ReviewsPageClient allReviews={allReviews} recentEvents={recentEvents} />;
 }

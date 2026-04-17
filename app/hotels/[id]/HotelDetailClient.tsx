@@ -72,6 +72,17 @@ const TOPIC_COLORS: Record<string, { bg: string; text: string }> = {
   eco_sustainability: { bg: "#F0FDF4", text: "#166534" },
 };
 
+function sentenceCase(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function toTitleCase(text: string): string {
+  return text
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function StarRow({ n, max = 5 }: { n: number; max?: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -140,13 +151,13 @@ function ReviewCard({ review }: { review: ReviewItem }) {
 
           {/* Title */}
           {review.title && (
-            <p className="text-xs font-semibold text-gray-700 mb-1">{review.title}</p>
+            <p className="text-xs font-semibold text-gray-700 mb-1">{sentenceCase(review.title)}</p>
           )}
 
           {/* Text */}
           {review.text && (
             <div>
-              <p className="text-xs text-gray-600 leading-relaxed">{displayText}</p>
+              <p className="text-xs text-gray-600 leading-relaxed">{sentenceCase(displayText)}</p>
               {needsTruncate && (
                 <button
                   onClick={() => setExpanded((v) => !v)}
@@ -174,8 +185,8 @@ function ReviewCard({ review }: { review: ReviewItem }) {
 
 function AmenityPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center text-xs bg-gray-50 text-gray-600 px-2.5 py-1 rounded-full border border-gray-100 capitalize">
-      {label.replace(/_/g, " ").toLowerCase()}
+    <span className="inline-flex items-center text-xs bg-gray-50 text-gray-600 px-2.5 py-1 rounded-full border border-gray-100">
+      {toTitleCase(label)}
     </span>
   );
 }
@@ -421,7 +432,7 @@ export default function HotelDetailClient({ detail, reviews }: HotelDetailClient
             <div className="bg-white rounded-xl border border-gray-100 p-4">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">About</h3>
               <p className="text-sm text-gray-600 leading-relaxed line-clamp-6">
-                {detail.description || "No description available."}
+                {sentenceCase(detail.description) || "No description available."}
               </p>
             </div>
 

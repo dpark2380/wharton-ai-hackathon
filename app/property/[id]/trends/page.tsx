@@ -15,7 +15,7 @@ export default async function TrendsPage({ params }: Props) {
   const { default: TrendsClient } = await import("./TrendsClient");
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-extrabold text-[#1E243A]">Satisfaction Trends</h2>
         <p className="text-sm text-gray-500 mt-1">
